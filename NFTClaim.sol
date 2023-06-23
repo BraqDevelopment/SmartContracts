@@ -2,20 +2,24 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract NFTClaim is Ownable {
+    // tokenId => (quarter => claimed)
     mapping(uint32 => mapping(uint8 => bool)) public friendsClaimed;
     mapping(uint32 => mapping(uint8 => bool)) public monstersClaimed;
     mapping(uint8 => uint256) fundingTime;
+    uint8 public currentQuarter = 0; 
     event TokensClaimed(address indexed user, uint256 tokensAmount);
 
     address private BraqTokenContractAddress;
-    IERC20 private BraqTokenInstance;
+    IERC721 private BraqTokenInstance;
 
-    function resetClaim() private onlyOwner {
-        
+    function resetQuarter(uint8 q) private onlyOwner {
+        currentQuarter = q;
     }
+
     constructor(address _tokenContract) {
         BraqTokenContractAddress = _tokenContract;
         BraqTokenInstance = IERC20(BraqTokenContractAddress);
@@ -28,22 +32,22 @@ contract NFTClaim is Ownable {
     }
 
     // Both contracts have no more than 5000 tokens
-    modifier onlyNotClaimedMonsters(uint32 tokenId, uint8 quarter) {
-       (!monstersClaimed[tokenId][quarter], "This BraqMonster is already claimed");
+    modifier onlyNotClaimedMonsters(uint32 tokenId, uint8 q) {
+       (!monstersClaimed[tokenId][q], "This BraqMonster is already claimed");
         _;
     }
 
-    modifier onlyNotClaimedFriends(uint32 tokenId, uint8 quarter) {
-       (!friendsClaimed[tokenId][quarter], "This BraqFriend is already claimed");
+    modifier onlyNotClaimedFriends(uint32 tokenId, uint8 q) {
+       (!friendsClaimed[tokenId][q], "This BraqFriend is already claimed");
         _;
     }
 
-    function claimTokens() external {
+    function claimTokens(uint32[] memory monsterTokenIds, uint32[] memory friendTokenIds) external {
+        require(block.timestamp >= fundingTime[currentQuarter], "Quarter did not start, too early");
         // Perform the necessary validation of the user's NFT ownership before proceeding
         // ...
 
         // Calculate the number of tokens to distribute based on the NFT
-        uint256 tokensAmount = calculateTokensAmount();
 
         // Perform the token distribution
         

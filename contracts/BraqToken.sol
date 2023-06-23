@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract BraqToken is ERC20, Ownable {
     uint256 public publicSaleSupply = 3750000;
 
-    constructor() ERC20("Braq", "BRQ") {}
+    constructor() ERC20("BRAQ", "BRQ") {}
         
     function mint(
     address _to,
