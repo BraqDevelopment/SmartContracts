@@ -9,8 +9,6 @@ loadEnv();
 const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY;
 const TOKEN_CONTRACT_ADDRESS = "0x5757077dC977EEF5c9479d8496C3C9E399b80E88";
 const SALE_CONTRACT_ADDRESS = "0xAC60EF2147a26950EdD76209f7B485C283ff2BA9";
-const my_address = "0x6f9e2777D267FAe69b0C5A24a402D14DA1fBcaA1";
-const Summer_address = "0x19294812D348aa770b006D466571B6D6c4C62365";
 const TOKEN_ABI_FILE_PATH = './build/contracts/BraqToken.json';
 const SALE_ABI_FILE_PATH = './build/contracts/BraqPublicSale.json';
 const WHITELIST_CSV_PATH = './whiteList.csv';
@@ -29,9 +27,9 @@ const token_contract = await getContract(TOKEN_CONTRACT_ADDRESS, TOKEN_ABI_FILE_
 const sale_contract = await getContract(SALE_CONTRACT_ADDRESS, SALE_ABI_FILE_PATH);
 //console.log(sale_contract);
 
-async function readAddressesFromCSV(filePath) {
+async function readAddressesFromCSV(WLfilePath) {
     const addresses = [];
-    const fileStream = fs.createReadStream(filePath);
+    const fileStream = fs.createReadStream(WLfilePath);
     const rl = createInterface({
       input: fileStream,
       crlfDelay: Infinity
