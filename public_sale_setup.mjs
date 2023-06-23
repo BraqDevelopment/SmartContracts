@@ -43,10 +43,6 @@ async function readAddressesFromCSV(WLfilePath) {
 }
 
 // Setup functions 
-export async function setToken(tokenAddress){
-    const set = sale_contract.setTokenContract(tokenAddress);
-    return set;
-}
 
 export async function mintTokens(_to, _amount){
     const mint = await token_contract.mint(_to, _amount);
@@ -66,3 +62,16 @@ export async function startPublicSale(){
 export async function stopPublicSale(){
     const stoped = await sale_contract.stopPublicSale();
 }
+
+const array = await readAddressesFromCSV(WHITELIST_CSV_PATH);
+
+const mint_tx = await mintTokens(SALE_CONTRACT_ADDRESS, 3750000);
+mint_tx.wait();
+
+console.log(await totalSupply() / BigInt(10 ** 18));
+
+const start = await startPublicSale();
+
+const stop = await startPublicSale();
+
+const restart = await startPublicSale();
