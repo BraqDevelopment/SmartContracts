@@ -12,6 +12,7 @@ interface IBraqMonsters {
 
 contract MonstersClaim is Ownable {
     // tokenId => (quarter => claimed)
+    // further q stands for quarter 
     mapping(uint32 => mapping(uint8 => bool)) public claimed;
     mapping(uint8 => uint256) public fundingTime;
     uint8 public currentQuarter = 0; 
@@ -63,18 +64,22 @@ contract MonstersClaim is Ownable {
         emit TokensClaimed(msg.sender, tokenIds.length);
     }
 
-    function calculateTokensAmount() internal pure returns (uint256) {
-        // Implement the logic to calculate the number of tokens to distribute based on the NFT
-        // ...
-
-        // For example, you can return a fixed amount or calculate it based on the NFT's metadata.
-        return 100; // Change this to your desired token amount
-    }
-
     // withdraw unclaimed tokens
     // amount in BRAQ 
     function withdrawTokens(uint256 amount) external onlyOwner {
         require(BraqTokenInstance.balanceOf(address(this)) >= amount * 10 ** 18, "Too much tokens to withdraw");
         BraqTokenInstance.transfer(msg.sender, amount * 10 ** 18);
+    }
+
+    function getBraqTokenAddress() external view returns(address){
+        return BraqTokenContractAddress;
+    }
+
+    function getBraqMonstersAddress() external view returns(address){
+        return BraqMonstersContractAdress;
+    }
+
+    function isClaimed(uint32 tokenId, uint8 q) external view returns(bool){
+        return claimed[tokenId][q];
     }
 }
