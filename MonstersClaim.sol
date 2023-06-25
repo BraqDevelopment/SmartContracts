@@ -13,7 +13,7 @@ interface IBraqMonsters {
 contract MonstersClaim is Ownable {
     // tokenId => (quarter => claimed)
     mapping(uint32 => mapping(uint8 => bool)) public claimed;
-    mapping(uint8 => uint256) fundingTime;
+    mapping(uint8 => uint256) public fundingTime;
     uint8 public currentQuarter = 0; 
     event TokensClaimed(address indexed user, uint256 tokensAmount);
 
@@ -40,27 +40,27 @@ contract MonstersClaim is Ownable {
         fundingTime[4] = 1711897200;
     }
 
-    // Both contracts have no more than 5000 tokens
-    modifier onlyNotClaimedMonsters(uint32 tokenId, uint8 q) {
-       (!claimed[tokenId][q], "This BraqMonster is already claimed");
-        _;
-    }
-
-    function claimTokens(uint32[] memory monsterTokenIds) external {
+    // Both contracts have 4444 tokens
+    function claimTokens(uint32[] memory tokenIds) external {
         require(currentQuarter > 0 && currentQuarter < 5);
-        require(block.timestamp >= fundingTime[currentQuarter], "Quarter did not start, too early");
-
-        // Perform the necessary validation of the user's NFT ownership before proceeding
-        // ...
-
-        // Calculate the number of tokens to distribute based on the NFT
-
-        // Perform the token distribution
-        
-
-        // Mark the NFT as claimed
-
-        emit TokensClaimed(msg.sender, tokensAmount);
+        require(block.timestamp >= fundingTime[currentQuarter], "Quarter did not start yet. It's too early");
+        require(tokenIds.length <= BraqMonstersInstance.balanceOf(msg.sender), "Claiming more tokens than you have!");
+        uint256 braqAmount = 0; // in BRAQ tokens
+        for (uint32 i=0; i < tokenIds.length; i++){
+            require(tokenIds[i]<= 4444 && tokenIds[i]>0, "Claiming not existing token!");
+            require(!claimed[tokenIds[i]][currentQuarter], "Token already claimed");
+            require(BraqMonstersInstance.ownerOf(tokenIds[i]) == msg.sender, "Claiming not owned tokens!");
+            braqAmount += 675;
+            // for Braq Friends 
+            /*
+            if(tokenIds[i]<=2022){
+                braqAmount += 2025;
+            }
+            else{braqAmount+= 1012;}
+            */
+        }
+        BraqTokenInstance.transfer(msg.sender, braqAmount * 10 ** 18);
+        emit TokensClaimed(msg.sender, tokenIds.length);
     }
 
     function calculateTokensAmount() internal pure returns (uint256) {
@@ -71,12 +71,10 @@ contract MonstersClaim is Ownable {
         return 100; // Change this to your desired token amount
     }
 
-    function withdrawTokens(uint256 amount) external {
-        //require(tokenBalances[msg.sender] >= amount, "Insufficient token balance");
-        //tokenBalances[msg.sender] -= amount;
-
-        // Perform the token transfer to the user's wallet
-        // ...
+    // withdraw unclaimed tokens
+    // amount in BRAQ 
+    function withdrawTokens(uint256 amount) external onlyOwner {
+        require(BraqTokenInstance.balanceOf(address(this)) >= amount * 10 ** 18, "Too much tokens to withdraw");
+        BraqTokenInstance.transfer(msg.sender, amount * 10 ** 18);
     }
-
 }
