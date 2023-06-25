@@ -5,24 +5,33 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract NFTClaim is Ownable {
+interface IBraqMonsters {
+    function balanceOf(address holder) external view returns (uint256);
+    function ownerOf(uint256 tokenId) external view returns (address);
+}
+
+contract MonstersClaim is Ownable {
     // tokenId => (quarter => claimed)
-    mapping(uint32 => mapping(uint8 => bool)) public friendsClaimed;
-    mapping(uint32 => mapping(uint8 => bool)) public monstersClaimed;
+    mapping(uint32 => mapping(uint8 => bool)) public claimed;
     mapping(uint8 => uint256) fundingTime;
     uint8 public currentQuarter = 0; 
     event TokensClaimed(address indexed user, uint256 tokensAmount);
 
-    address private BraqTokenContractAddress;
-    IERC721 private BraqTokenInstance;
+    address public BraqTokenContractAddress;
+    IERC20 private BraqTokenInstance;
+    address public BraqMonstersContractAdress;
+    IBraqMonsters private BraqMonstersInstance;
 
     function resetQuarter(uint8 q) private onlyOwner {
         currentQuarter = q;
     }
 
-    constructor(address _tokenContract) {
+    constructor(address _tokenContract, address _braqMonstersContract) {
         BraqTokenContractAddress = _tokenContract;
         BraqTokenInstance = IERC20(BraqTokenContractAddress);
+
+        BraqMonstersContractAdress = _braqMonstersContract;
+        BraqMonstersInstance = IBraqMonsters(_braqMonstersContract);
 
         fundingTime[0] = block.timestamp;
         fundingTime[1] = 1688137200;
@@ -33,17 +42,14 @@ contract NFTClaim is Ownable {
 
     // Both contracts have no more than 5000 tokens
     modifier onlyNotClaimedMonsters(uint32 tokenId, uint8 q) {
-       (!monstersClaimed[tokenId][q], "This BraqMonster is already claimed");
+       (!claimed[tokenId][q], "This BraqMonster is already claimed");
         _;
     }
 
-    modifier onlyNotClaimedFriends(uint32 tokenId, uint8 q) {
-       (!friendsClaimed[tokenId][q], "This BraqFriend is already claimed");
-        _;
-    }
-
-    function claimTokens(uint32[] memory monsterTokenIds, uint32[] memory friendTokenIds) external {
+    function claimTokens(uint32[] memory monsterTokenIds) external {
+        require(currentQuarter > 0 && currentQuarter < 5);
         require(block.timestamp >= fundingTime[currentQuarter], "Quarter did not start, too early");
+
         // Perform the necessary validation of the user's NFT ownership before proceeding
         // ...
 
