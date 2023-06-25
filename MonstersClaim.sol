@@ -24,6 +24,8 @@ contract MonstersClaim is Ownable {
     IBraqMonsters private BraqMonstersInstance;
 
     function resetQuarter(uint8 q) private onlyOwner {
+        require(q > 0 && q < 5);
+        require(block.timestamp >= fundingTime[q], "Quarter did not start yet. It's too early");
         currentQuarter = q;
     }
 
@@ -44,7 +46,6 @@ contract MonstersClaim is Ownable {
     // Both contracts have 4444 tokens
     function claimTokens(uint32[] memory tokenIds) external {
         require(currentQuarter > 0 && currentQuarter < 5);
-        require(block.timestamp >= fundingTime[currentQuarter], "Quarter did not start yet. It's too early");
         require(tokenIds.length <= BraqMonstersInstance.balanceOf(msg.sender), "Claiming more tokens than you have!");
         uint256 braqAmount = 0; // in BRAQ tokens
         for (uint32 i=0; i < tokenIds.length; i++){
@@ -52,13 +53,6 @@ contract MonstersClaim is Ownable {
             require(!claimed[tokenIds[i]][currentQuarter], "Token already claimed");
             require(BraqMonstersInstance.ownerOf(tokenIds[i]) == msg.sender, "Claiming not owned tokens!");
             braqAmount += 675;
-            // for Braq Friends 
-            /*
-            if(tokenIds[i]<=2022){
-                braqAmount += 2025;
-            }
-            else{braqAmount+= 1012;}
-            */
         }
         BraqTokenInstance.transfer(msg.sender, braqAmount * 10 ** 18);
         emit TokensClaimed(msg.sender, tokenIds.length);
