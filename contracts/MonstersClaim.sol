@@ -60,6 +60,7 @@ contract MonstersClaim is Ownable {
             require(tokenIds[i]<= 4444 && tokenIds[i]>0, "Claiming not existing token!");
             require(!claimed[tokenIds[i]][currentQuarter], "Token already claimed");
             require(BraqMonstersInstance.ownerOf(tokenIds[i]) == msg.sender, "Claiming not owned tokens!");
+            claimed[tokenIds[i]][currentQuarter] = true;
             braqAmount += 675;
         }
         BraqTokenInstance.transfer(msg.sender, braqAmount * 10 ** 18);
@@ -71,6 +72,12 @@ contract MonstersClaim is Ownable {
     function withdrawTokens(uint256 amount) external onlyOwner {
         require(BraqTokenInstance.balanceOf(address(this)) >= amount * 10 ** 18, "Too much tokens to withdraw");
         BraqTokenInstance.transfer(msg.sender, amount * 10 ** 18);
+    }
+
+    function withdrawETH(uint256 amount) external onlyOwner { // Amount in wei
+        require(address(this).balance > amount , "Insufficient contract balance");
+        // Transfer ETH to the caller
+        payable(msg.sender).transfer(amount);
     }
 
     function getBraqTokenAddress() external view returns(address){
