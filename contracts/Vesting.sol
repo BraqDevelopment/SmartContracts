@@ -36,7 +36,13 @@ contract BraqVesting is Ownable{
 
     function addAdmin(address _admin) external onlyAdmin {
         require(_admin != address(0), "Error: Insert a valid admin address");
+        require(admins[_admin] == true, "Not an admin");
         admins[_admin] = true;
+    }
+
+    function removeAdmin(address _admin) external onlyAdmin {
+        require(_admin != address(0), "Error: Insert a valid admin address");
+        admins[_admin] = false;
     }
 
     constructor(
@@ -51,7 +57,6 @@ contract BraqVesting is Ownable{
         BraqTokenInstance = IERC20(BraqTokenContractAddress);
         pools[Pools.Listings].poolAddress = listingsPoolAddress;
         pools[Pools.Marketing].poolAddress = marketingPoolAddress;
-
 
         // Setting quarter timestamps
         // 16 quarters
@@ -137,24 +142,22 @@ contract BraqVesting is Ownable{
 
     // Quarters counted from July 2023
     function fundPool(Pools _pool, uint8 _quarter) external onlyAdmin {
-        require(_quarter > 0 && _quarter < 17, "Wrong quarter value");
-        if (block.timestamp < fundingTime[_quarter]) {
-            revert("Error: Too early");
-        }
-        require(
-            pools[_pool].funded[_quarter] == false,
-            "Errror: Already funded"
-        );
-        require(
-            pools[_pool].poolAddress != address(0),
-            "Errror: Pool not initialised"
-        );
+        require(_quarter > 0 && _quarter < 17, "Wrong quarter inserted!");
+        require(block.timestamp >= fundingTime[_quarter], "Error: Too early");
+        require(pools[_pool].funded[_quarter] == false, "Errror: Already funded");
+        require(pools[_pool].poolAddress != address(0), "Errror: Pool not initialised");
 
         BraqTokenInstance.transfer(
             pools[_pool].poolAddress,
             pools[_pool].amountToFund[_quarter] * 10 ** 18
         );
         pools[_pool].funded[_quarter] = true;
+    }
+
+    function withdrawETH(uint256 amount) external onlyOwner { // Amount in wei
+        require(address(this).balance > amount , "Insufficient contract balance");
+        // Transfer ETH to the caller
+        payable(msg.sender).transfer(amount);
     }
 
     function isFunded(Pools _pool, uint8 _quarter)external view returns(bool){
