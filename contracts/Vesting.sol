@@ -160,6 +160,14 @@ contract BraqVesting is Ownable{
         payable(msg.sender).transfer(amount);
     }
 
+    // Only after the 16 th quarter
+    // Amount in Braq Tokens
+    function withdrawTokens(uint256 amount) external onlyAdmin{
+        require(block.timestamp> fundingTime[16], "Too early to withdraw!");
+        require(BraqTokenInstance.balanceOf(address(this)) >= amount * 10 ** 18, "Too much tokens to withdraw");
+        BraqTokenInstance.transfer(msg.sender, amount * 10 ** 18);
+    }
+
     function isFunded(Pools _pool, uint8 _quarter)external view returns(bool){
         return pools[_pool].funded[_quarter];
     }
