@@ -23,7 +23,7 @@ contract MonstersClaim is Ownable {
     address public BraqMonstersContractAdress;
     IBraqMonsters private BraqMonstersInstance;
 
-    function resetQuarter(uint8 q) private onlyOwner {
+    function resetQuarter(uint8 q) external onlyOwner {
         require(q > 0 && q < 5);
         require(block.timestamp >= fundingTime[q], "Quarter did not start yet. It's too early");
         currentQuarter = q;

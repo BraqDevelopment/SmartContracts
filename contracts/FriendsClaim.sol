@@ -23,7 +23,7 @@ contract FriendsClaim is Ownable {
     address public BraqFriendsContractAdress;
     IBraqFriends private BraqFriendsInstance;
 
-    function resetQuarter(uint8 q) private onlyOwner {
+    function resetQuarter(uint8 q) external onlyOwner {
         require(q > 0 && q < 5);
         require(block.timestamp >= fundingTime[q], "Quarter did not start yet. It's too early");
         currentQuarter = q;
@@ -40,7 +40,8 @@ contract FriendsClaim is Ownable {
         fundingTime[1] = 1688137200;
         fundingTime[2] = 1696086000;
         fundingTime[3] = 1704034800;
-        fundingTime[4] = 1711897200;
+        //fundingTime[4] = 1711897200;
+        fundingTime[0] = block.timestamp;
     }
 
     // Both contracts have 4444 tokens
