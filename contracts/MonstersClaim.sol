@@ -53,6 +53,7 @@ contract MonstersClaim is Ownable {
 
     // Both contracts have 4444 tokens
     function claimTokens(uint32[] memory tokenIds) external {
+        require(isActive == true, "Claim was stopped");
         require(currentQuarter > 0 && currentQuarter < 5);
         require(tokenIds.length <= BraqMonstersInstance.balanceOf(msg.sender), "Claiming more tokens than you have!");
         uint256 braqAmount = 0; // in BRAQ tokens
