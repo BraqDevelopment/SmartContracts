@@ -49,6 +49,9 @@ contract BraqVesting is Ownable{
         admins[msg.sender] = true;
         BraqTokenContractAddress = braqTokenAddress;
         BraqTokenInstance = IERC20(BraqTokenContractAddress);
+        pools[Pools.Listings].poolAddress = listingsPoolAddress;
+        pools[Pools.Marketing].poolAddress = marketingPoolAddress;
+
 
         // Setting quarter timestamps
         // 16 quarters
