@@ -17,6 +17,7 @@ contract MonstersClaim is Ownable {
     mapping(uint8 => uint256) public fundingTime;
     uint8 public currentQuarter = 0; 
     event TokensClaimed(address indexed user, uint256 tokensAmount);
+    bool isActive =true;
 
     address public BraqTokenContractAddress;
     IERC20 private BraqTokenInstance;
@@ -25,7 +26,7 @@ contract MonstersClaim is Ownable {
 
     function resetQuarter(uint8 q) external onlyOwner {
         require(q > 0 && q < 5);
-        require(block.timestamp >= fundingTime[q], "Quarter did not start yet. It's too early");
+        require(block.timestamp >= fundingTime[q], "Quarter did not start yet. It is too early");
         currentQuarter = q;
     }
 
@@ -36,11 +37,18 @@ contract MonstersClaim is Ownable {
         BraqMonstersContractAdress = _braqMonstersContract;
         BraqMonstersInstance = IBraqMonsters(_braqMonstersContract);
 
-        fundingTime[0] = block.timestamp;
-        fundingTime[1] = 1688137200;
+        fundingTime[1] = block.timestamp;
         fundingTime[2] = 1696086000;
         fundingTime[3] = 1704034800;
         fundingTime[4] = 1711897200;
+    }
+
+    function startClaim() external onlyOwner{
+        isActive = true;
+    }
+
+    function stopClaim() external onlyOwner{
+        isActive = false;
     }
 
     // Both contracts have 4444 tokens
