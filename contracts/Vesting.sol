@@ -60,7 +60,7 @@ contract BraqVesting is Ownable{
 
         // Setting quarter timestamps
         // 16 quarters
-        fundingTime[1] = 1688137200;
+        fundingTime[1] = block.timestamp;
         fundingTime[2] = 1696086000;
         fundingTime[3] = 1704034800;
         fundingTime[4] = 1711897200;
@@ -90,8 +90,7 @@ contract BraqVesting is Ownable{
             pools[Pools.Ecosystem].amountToFund[i] = 125 * 10 ** 4;
         }
         // Rewards
-        // TGE 7 500 000
-        for (uint8 i = 2; i < 5; i++) {
+        for (uint8 i = 1; i < 5; i++) {
         pools[Pools.Rewards].amountToFund[i] = 75 * 10 ** 5;
         }
         // Incentives 
@@ -100,7 +99,7 @@ contract BraqVesting is Ownable{
         }
         // Listings
         // TGE 7 500 000
-        //BraqTokenInstance.transfer(listingsPoolAddress, 7500000 * 10 ** 18);
+        BraqTokenInstance.transfer(listingsPoolAddress, 7500000 * 10 ** 18);
         for (uint8 i = 1; i < 5; i++) {
         pools[Pools.Listings].amountToFund[i] = 5 * 10 ** 6;
         }
@@ -114,7 +113,7 @@ contract BraqVesting is Ownable{
         }
         // Marketing 
         // TGE 7 500 000
-        //BraqTokenInstance.transfer(marketingPoolAddress, 7500000 * 10 ** 18);
+        BraqTokenInstance.transfer(marketingPoolAddress, 7500000 * 10 ** 18);
         for (uint8 i = 2; i < 5; i++) {
         pools[Pools.Marketing].amountToFund[i] = 937500;
         }
@@ -145,7 +144,8 @@ contract BraqVesting is Ownable{
         require(_quarter > 0 && _quarter < 17, "Wrong quarter inserted!");
         require(block.timestamp >= fundingTime[_quarter], "Error: Too early");
         require(pools[_pool].funded[_quarter] == false, "Errror: Already funded");
-        require(pools[_pool].poolAddress != address(0), "Errror: Pool not initialised");
+        require(pools[_pool].poolAddress != address(0), "Errror: Pool address not set!");
+        require(pools[_pool].amountToFund[_quarter]>0, "Error: amount to fund is 0!");
 
         BraqTokenInstance.transfer(
             pools[_pool].poolAddress,
