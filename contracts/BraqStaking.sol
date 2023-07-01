@@ -9,14 +9,14 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 /**
  * @title Braq Staking Contract
  * @notice Stake BraqToken across four different pools that release hourly rewards
- * @author Cosmodude
+ * @author Cosmodude, HorizenLabs
  */
 contract BraqTokenStaking is Ownable {
 
     using SafeCast for uint256;
     using SafeCast for int256;
 
-    /// @notice State for ApeCoin, BAYC, MAYC, and Pair Pools
+    /// @notice State for BraqToken, BraqFriends, BraqMonsters, and Pair Pools
     struct Pool {
         uint48 lastRewardedTimestampHour;
         uint16 lastRewardsRangeIndex;
@@ -48,18 +48,18 @@ contract BraqTokenStaking is Ownable {
     }
     mapping (address => Position) public addressPosition;
 
-    /// @dev Struct for depositing and withdrawing from the BAYC and MAYC NFT pools
+    /// @dev Struct for depositing and withdrawing from the BraqFriends and BraqMonsters NFT pools
     struct SingleNft {
         uint32 tokenId;
         uint224 amount;
     }
-    /// @dev Struct for depositing from the BAKC (Pair) pool
+    /// @dev Struct for depositing into the Pair pool
     struct PairNftDepositWithAmount {
         uint32 mainTokenId;
         uint32 bakcTokenId;
         uint184 amount;
     }
-    /// @dev Struct for withdrawing from the BAKC (Pair) pool
+    /// @dev Struct for withdrawing from Pair pool
     struct PairNftWithdrawWithAmount {
         uint32 mainTokenId;
         uint32 bakcTokenId;
@@ -71,7 +71,7 @@ contract BraqTokenStaking is Ownable {
         uint128 mainTokenId;
         uint128 bakcTokenId;
     }
-    /// @dev NFT paired status.  Can be used bi-directionally (BAYC/MAYC -> BAKC) or (BAKC -> BAYC/MAYC)
+    /// @dev NFT paired status.  Can be used bi-directionally (BraqFriends -> BraqMonsters ) or (BraqMonsters -> BraqFriends)
     struct PairingStatus {
         uint248 tokenId;
         bool isPaired;
@@ -91,30 +91,30 @@ contract BraqTokenStaking is Ownable {
         uint256 mainTokenId;
         uint256 mainTypePoolId;
     }
-    /// @dev Placeholder for pair status, used by ApeCoin Pool
+    /// @dev Placeholder for pair status, used by BraqToken Pool
     DashboardPair private NULL_PAIR = DashboardPair(0, 0);
 
-    /// @notice Internal ApeCoin amount for distributing staking reward claims
-    IERC20 public immutable apeCoin;
-    uint256 private constant APE_COIN_PRECISION = 1e18;
-    uint256 private constant MIN_DEPOSIT = 1 * APE_COIN_PRECISION;
+    /// @notice Internal BraqToken amount for distributing staking reward claims
+    IERC20 public immutable braqToken;
+    uint256 private constant BRAQ_TOKEN_PRECISION = 1e18;
+    uint256 private constant MIN_DEPOSIT = 1 * BRAQ_TOKEN_PRECISION;
     uint256 private constant SECONDS_PER_HOUR = 3600;
     uint256 private constant SECONDS_PER_MINUTE = 60;
 
-    uint256 constant APECOIN_POOL_ID = 0;
-    uint256 constant BAYC_POOL_ID = 1;
-    uint256 constant MAYC_POOL_ID = 2;
-    uint256 constant BAKC_POOL_ID = 3;
+    uint256 constant BraqToken_POOL_ID = 0;
+    uint256 constant BraqFriends_POOL_ID = 1;
+    uint256 constant BraqMonsters_POOL_ID = 2;
+    uint256 constant Pair_POOL_ID = 3;
     Pool[4] public pools;
 
     /// @dev NFT contract mapping per pool
     mapping(uint256 => ERC721Enumerable) public nftContracts;
     /// @dev poolId => tokenId => nft position
     mapping(uint256 => mapping(uint256 => Position)) public nftPosition;
-    /// @dev main type pool ID: 1: BAYC 2: MAYC => main token ID => bakc token ID
-    mapping(uint256 => mapping(uint256 => PairingStatus)) public mainToBakc;
-    /// @dev bakc Token ID => main type pool ID: 1: BAYC 2: MAYC => main token ID
-    mapping(uint256 => mapping(uint256 => PairingStatus)) public bakcToMain;
+    /// @dev Friends token ID => back token ID
+    mapping(uint256 => PairingStatus) public FriendToMonster;
+    /// @dev Monster Token ID => Friends token ID
+    mapping(uint256 => PairingStatus) public MonsterToFriend;
 
     /** Custom Events */
     event UpdatePool(
@@ -137,9 +137,8 @@ contract BraqTokenStaking is Ownable {
     event DepositPairNft(
         address indexed user,
         uint256 amount,
-        uint256 mainTypePoolId,
-        uint256 mainTokenId,
-        uint256 bakcTokenId
+        uint256 FriendsTokenId,
+        uint256 MonstersTokenId
     );
     event Withdraw(
         address indexed user,
@@ -156,9 +155,8 @@ contract BraqTokenStaking is Ownable {
     event WithdrawPairNft(
         address indexed user,
         uint256 amount,
-        uint256 mainTypePoolId,
-        uint256 mainTokenId,
-        uint256 bakcTokenId
+        uint256 FriendsTokenId,
+        uint256 MonstersTokenId
     );
     event ClaimRewards(
         address indexed user,
@@ -174,12 +172,11 @@ contract BraqTokenStaking is Ownable {
     event ClaimRewardsPairNft(
         address indexed user,
         uint256 amount,
-        uint256 mainTypePoolId,
-        uint256 mainTokenId,
-        uint256 bakcTokenId
+        uint256 FriendsTokenId,
+        uint256 MonstersTokenId
     );
 
-    error DepositMoreThanOneAPE();
+    error DepositMoreThanOneBraq();
     error InvalidPoolId();
     error StartMustBeGreaterThanEnd();
     error StartNotWholeHour();
@@ -187,11 +184,11 @@ contract BraqTokenStaking is Ownable {
     error StartMustEqualLastEnd();
     error CallerNotOwner();
     error MainTokenNotOwnedOrPaired();
-    error BAKCNotOwnedOrPaired();
-    error BAKCAlreadyPaired();
+    error MonsterNotOwnedOrPaired();
+    error MonsterAlreadyPaired();
     error ExceededCapAmount();
-    error NotOwnerOfMain();
-    error NotOwnerOfBAKC();
+    error NotOwnerOfFriend();
+    error NotOwnerOfMonster();
     error ProvidedTokensNotPaired();
     error ExceededStakedAmount();
     error NeitherTokenInPairOwnedByCaller();
@@ -199,22 +196,19 @@ contract BraqTokenStaking is Ownable {
     error UncommitWrongParameters();
 
     /**
-     * @notice Construct a new ApeCoinStaking instance
-     * @param _apeCoinContractAddress The ApeCoin ERC20 contract address
-     * @param _baycContractAddress The BAYC NFT contract address
-     * @param _maycContractAddress The MAYC NFT contract address
-     * @param _bakcContractAddress The BAKC NFT contract address
+     * @notice Construct a new BraqTokenStaking instance
+     * @param _braqTokenContractAddress The BraqToken ERC20 contract address
+     * @param _friendsContractAddress The BraqFriends NFT contract address
+     * @param _monstersContractAddress The BraqMonsters NFT contract address
      */
     constructor(
-        address _apeCoinContractAddress,
-        address _baycContractAddress,
-        address _maycContractAddress,
-        address _bakcContractAddress
+        address _braqTokenContractAddress,
+        address _friendsContractAddress,
+        address _monstersContractAddress
     ) {
-        apeCoin = IERC20(_apeCoinContractAddress);
-        nftContracts[BAYC_POOL_ID] = ERC721Enumerable(_baycContractAddress);
-        nftContracts[MAYC_POOL_ID] = ERC721Enumerable(_maycContractAddress);
-        nftContracts[BAKC_POOL_ID] = ERC721Enumerable(_bakcContractAddress);
+        braqToken = IERC20(_braqTokenContractAddress);
+        nftContracts[BraqFriends_POOL_ID] = ERC721Enumerable(_friendsContractAddress);
+        nftContracts[BraqMonsters_POOL_ID] = ERC721Enumerable(_monstersContractAddress);
     }
 
     // Deposit/Commit Methods
@@ -226,13 +220,13 @@ contract BraqTokenStaking is Ownable {
      * @dev ApeCoin deposit must be >= 1 ApeCoin
      */
     function depositApeCoin(uint256 _amount, address _recipient) public {
-        if (_amount < MIN_DEPOSIT) revert DepositMoreThanOneAPE();
-        updatePool(APECOIN_POOL_ID);
+        if (_amount < MIN_DEPOSIT) revert DepositMoreThanOneBraq();
+        updatePool(BraqToken_POOL_ID);
 
         Position storage position = addressPosition[_recipient];
-        _deposit(APECOIN_POOL_ID, position, _amount);
+        _deposit(BraqToken_POOL_ID, position, _amount);
 
-        apeCoin.transferFrom(msg.sender, address(this), _amount);
+        braqToken.transferFrom(msg.sender, address(this), _amount);
 
         emit Deposit(msg.sender, _amount, _recipient);
     }
