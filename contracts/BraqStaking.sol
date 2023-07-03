@@ -236,7 +236,7 @@ contract BraqTokenStaking is Ownable {
      * @param _amount Amount in BraqToken
      * @dev Deposit on behalf of msg.sender. BraqToken deposit must be >= 1 BraqToken
      */
-    function depositSelfApeCoin(uint256 _amount) external {
+    function depositSelfBraqToken(uint256 _amount) external {
         depositBraqToken(_amount, msg.sender);
     }
 
@@ -322,102 +322,100 @@ contract BraqTokenStaking is Ownable {
      * @notice Claim rewards for array of BraqMonsters NFTs
      * @param _nfts Array of NFTs owned and committed by the msg.sender
      */
-    function claimSelfMAYC(uint256[] calldata _nfts) external {
+    function claimSelfMonsters(uint256[] calldata _nfts) external {
         _claimNft(BraqMonsters_POOL_ID, _nfts, msg.sender);
     }
 
     /**
      * @notice Claim rewards for array of Paired NFTs and send to recipient
-     * @param _Pairs Array of Paired MAYC NFTs owned and committed by the msg.sender
+     * @param _Pairs Array of Paired NFTs owned and committed by the msg.sender
      * @param _recipient Address to send claim reward to
      */
-    function claimBAKC(PairNft[] calldata _Pairs, address _recipient) public {
+    function claimPair(PairNft[] calldata _Pairs, address _recipient) public {
         updatePool(Pair_POOL_ID);
         _claimPairNft(BraqFriends_POOL_ID, _Pairs, _recipient);
     }
 
     /**
      * @notice Claim rewards for array of Paired NFTs
-     * @param _Pairs Array of Paired BAYC NFTs owned and committed by the msg.sender
+     * @param _Pairs Array of Paired NFTs owned and committed by the msg.sender
      */
-    function claimSelfBAKC(PairNft[] calldata _Pairs) external {
-        claimBAKC(_Pairs, msg.sender);
+    function claimSelfPair(PairNft[] calldata _Pairs) external {
+        claimPair(_Pairs, msg.sender);
     }
 
     // Uncommit/Withdraw Methods
 
     /**
-     * @notice Withdraw staked ApeCoin from the ApeCoin pool.  Performs an automatic claim as part of the withdraw process.
-     * @param _amount Amount of ApeCoin
+     * @notice Withdraw staked BraqToken from the BraqToken pool. Performs an automatic claim as part of the withdraw process.
+     * @param _amount Amount of BraqToken
      * @param _recipient Address to send withdraw amount and claim to
      */
-    function withdrawApeCoin(uint256 _amount, address _recipient) public {
-        updatePool(APECOIN_POOL_ID);
+    function withdrawBraqToken(uint256 _amount, address _recipient) public {
+        updatePool(BraqToken_POOL_ID);
 
         Position storage position = addressPosition[msg.sender];
         if (_amount == position.stakedAmount) {
-            uint256 rewardsToBeClaimed = _claim(APECOIN_POOL_ID, position, _recipient);
+            uint256 rewardsToBeClaimed = _claim(BraqToken_POOL_ID, position, _recipient);
             emit ClaimRewards(msg.sender, rewardsToBeClaimed, _recipient);
         }
-        _withdraw(APECOIN_POOL_ID, position, _amount);
+        _withdraw(BraqToken_POOL_ID, position, _amount);
 
-        apeCoin.transfer(_recipient, _amount);
+        braqToken.transfer(_recipient, _amount);
 
         emit Withdraw(msg.sender, _amount, _recipient);
     }
 
     /**
-     * @notice Withdraw staked ApeCoin from the ApeCoin pool.  If withdraw is total staked amount, performs an automatic claim.
-     * @param _amount Amount of ApeCoin
+     * @notice Withdraw staked BraqToken from the BraqToken pool. If withdraw is total staked amount, performs an automatic claim.
+     * @param _amount Amount of BraqToken
      */
-    function withdrawSelfApeCoin(uint256 _amount) external {
-        withdrawApeCoin(_amount, msg.sender);
+    function withdrawSelfBraqToken(uint256 _amount) external {
+        withdrawBraqToken(_amount, msg.sender);
     }
 
     /**
-     * @notice Withdraw staked ApeCoin from the BAYC pool.  If withdraw is total staked amount, performs an automatic claim.
-     * @param _nfts Array of BAYC NFT's with staked amounts
+     * @notice Withdraw staked BraqToken from the BraqFriends pool. If withdraw is total staked amount, performs an automatic claim.
+     * @param _nfts Array of BraqFriends NFT's with staked amounts
      * @param _recipient Address to send withdraw amount and claim to
      */
-    function withdrawBAYC(SingleNft[] calldata _nfts, address _recipient) external {
-        _withdrawNft(BAYC_POOL_ID, _nfts, _recipient);
+    function withdrawFriends(SingleNft[] calldata _nfts, address _recipient) external {
+        _withdrawNft(BraqFriends_POOL_ID, _nfts, _recipient);
     }
 
     /**
-     * @notice Withdraw staked ApeCoin from the BAYC pool.  If withdraw is total staked amount, performs an automatic claim.
-     * @param _nfts Array of BAYC NFT's with staked amounts
+     * @notice Withdraw staked BraqToken from the BraqFriends pool. If withdraw is total staked amount, performs an automatic claim.
+     * @param _nfts Array of BraqFriends NFT's with staked amounts
      */
-    function withdrawSelfBAYC(SingleNft[] calldata _nfts) external {
-        _withdrawNft(BAYC_POOL_ID, _nfts, msg.sender);
+    function withdrawSelfFriends(SingleNft[] calldata _nfts) external {
+        _withdrawNft(BraqFriends_POOL_ID, _nfts, msg.sender);
     }
 
     /**
-     * @notice Withdraw staked ApeCoin from the MAYC pool.  If withdraw is total staked amount, performs an automatic claim.
-     * @param _nfts Array of MAYC NFT's with staked amounts
+     * @notice Withdraw staked BraqToken from the BraqMonsters pool. If withdraw is total staked amount, performs an automatic claim.
+     * @param _nfts Array of BraqMonsters NFT's with staked amounts
      * @param _recipient Address to send withdraw amount and claim to
      */
-    function withdrawMAYC(SingleNft[] calldata _nfts, address _recipient) external {
-        _withdrawNft(MAYC_POOL_ID, _nfts, _recipient);
+    function withdrawMonsters(SingleNft[] calldata _nfts, address _recipient) external {
+        _withdrawNft(BraqMonsters_POOL_ID, _nfts, _recipient);
     }
 
     /**
-     * @notice Withdraw staked ApeCoin from the MAYC pool.  If withdraw is total staked amount, performs an automatic claim.
-     * @param _nfts Array of MAYC NFT's with staked amounts
+     * @notice Withdraw staked BraqToken from the BraqMonsters pool. If withdraw is total staked amount, performs an automatic claim.
+     * @param _nfts Array of BraqMonsters NFT's with staked amounts
      */
-    function withdrawSelfMAYC(SingleNft[] calldata _nfts) external {
-        _withdrawNft(MAYC_POOL_ID, _nfts, msg.sender);
+    function withdrawSelfMonsters(SingleNft[] calldata _nfts) external {
+        _withdrawNft(BraqMonsters_POOL_ID, _nfts, msg.sender);
     }
 
     /**
-     * @notice Withdraw staked ApeCoin from the Pair pool.  If withdraw is total staked amount, performs an automatic claim.
-     * @param _baycPairs Array of Paired BAYC NFT's with staked amounts and isUncommit boolean
-     * @param _maycPairs Array of Paired MAYC NFT's with staked amounts and isUncommit boolean
-     * @dev if pairs have split ownership and BAKC is attempting a withdraw, the withdraw must be for the total staked amount
+     * @notice Withdraw staked BraqToken from the Pair pool. If withdraw is total staked amount, performs an automatic claim.
+     * @param _Pairs Array of Paired NFT's with staked amounts and isUncommit boolean
+     * @dev if pairs have split ownership and BraqMonster is attempting a withdraw, the withdraw must be for the total staked amount
      */
-    function withdrawBAKC(PairNftWithdrawWithAmount[] calldata _baycPairs, PairNftWithdrawWithAmount[] calldata _maycPairs) external {
-        updatePool(BAKC_POOL_ID);
-        _withdrawPairNft(BAYC_POOL_ID, _baycPairs);
-        _withdrawPairNft(MAYC_POOL_ID, _maycPairs);
+    function withdrawPair(PairNftWithdrawWithAmount[] calldata _Pairs) external {
+        updatePool(Pair_POOL_ID);
+        _withdrawPairNft(BraqFriends_POOL_ID, _Pairs);
     }
 
     // Time Range Methods
