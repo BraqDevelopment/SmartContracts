@@ -269,7 +269,7 @@ contract BraqTokenStaking is Ownable {
      */
     function depositPair(PairNftDepositWithAmount[] calldata _Pairs) external {
         updatePool(Pair_POOL_ID);
-        _depositPairNft(BraqFriends_POOL_ID, _Pairs);
+        _depositPairNft(_Pairs);
     }
 
     // Claim Rewards Methods
@@ -333,7 +333,7 @@ contract BraqTokenStaking is Ownable {
      */
     function claimPair(PairNft[] calldata _Pairs, address _recipient) public {
         updatePool(Pair_POOL_ID);
-        _claimPairNft(BraqFriends_POOL_ID, _Pairs, _recipient);
+        _claimPairNft(_Pairs, _recipient);
     }
 
     /**
@@ -415,7 +415,7 @@ contract BraqTokenStaking is Ownable {
      */
     function withdrawPair(PairNftWithdrawWithAmount[] calldata _Pairs) external {
         updatePool(Pair_POOL_ID);
-        _withdrawPairNft(BraqFriends_POOL_ID, _Pairs);
+        _withdrawPairNft(_Pairs);
     }
 
     // Time Range Methods
@@ -613,8 +613,7 @@ contract BraqTokenStaking is Ownable {
         uint256 nftCount = nftContracts[BraqFriends_POOL_ID].balanceOf(_addr);
         for(uint256 i = 0; i < nftCount; ++i) {
             uint256 friendTokenId = nftContracts[BraqFriends_POOL_ID].tokenOfOwnerByIndex(_addr, i);
-            if (FriendToMonster[BraqFriends_POOL_ID][friendTokenId].isPaired) {
-                uint256 bakcTokenId = FriendToMonster[BraqFriends_POOL_ID][friendTokenId].tokenId;
+            if (FriendToMonster[friendTokenId].isPaired) {
                 total += nftPosition[BraqFriends_POOL_ID][friendTokenId].stakedAmount;
             }
         }
@@ -622,8 +621,7 @@ contract BraqTokenStaking is Ownable {
         nftCount = nftContracts[BraqMonsters_POOL_ID].balanceOf(_addr);
         for(uint256 i = 0; i < nftCount; ++i) {
             uint256 monsterTokenId = nftContracts[BraqMonsters_POOL_ID].tokenOfOwnerByIndex(_addr, i);
-            if (FriendToMonster[BraqMonsters_POOL_ID][monsterTokenId].isPaired) {
-                uint256 bakcTokenId = FriendToMonster[BraqMonsters_POOL_ID][monsterTokenId].tokenId;
+            if (MonsterToFriend[monsterTokenId].isPaired) {
                 total += nftPosition[BraqMonsters_POOL_ID][monsterTokenId].stakedAmount;
             }
         }
@@ -720,16 +718,16 @@ contract BraqTokenStaking is Ownable {
      * @param _address An Ethereum address
      */
     function getSplitStakes(address _address) public view returns (DashboardStake[] memory) {
-        uint256 friendsSplits = _getSplitStakeCount(nftContracts[BraqFriends_POOL_ID].balanceOf(_address), _address, BraqFriends_POOL_ID);
-        uint256 monstersSplits = _getSplitStakeCount(nftContracts[BraqMonsters_POOL_ID].balanceOf(_address), _address, BraqMonsters_POOL_ID);
+        uint256 friendsSplits = _getSplitStakeCount(nftContracts[BraqFriends_POOL_ID].balanceOf(_address), _address);
+        uint256 monstersSplits = _getSplitStakeCount(nftContracts[BraqMonsters_POOL_ID].balanceOf(_address), _address);
         uint256 totalSplits = friendsSplits + monstersSplits;
 
         if(totalSplits == 0) {
             return new DashboardStake[](0);
         }
 
-        DashboardStake[] memory friendsSplitStakes = _getSplitStakes(friendsSplits, _address, BraqFriends_POOL_ID);
-        DashboardStake[] memory monsterSplitStakes = _getSplitStakes(monstersSplits, _address, BraqMonsters_POOL_ID);
+        DashboardStake[] memory friendsSplitStakes = _getSplitStakes(friendsSplits, _address);
+        DashboardStake[] memory monsterSplitStakes = _getSplitStakes(monstersSplits, _address);
 
         DashboardStake[] memory splitStakes = new DashboardStake[](totalSplits);
         uint256 offset = 0;
@@ -746,29 +744,29 @@ contract BraqTokenStaking is Ownable {
         return splitStakes;
     }
 
-    function _getSplitStakes(uint256 splits, address _address, uint256 _mainPoolId) private view returns (DashboardStake[] memory) {
+    function _getSplitStakes(uint256 splits, address _address) private view returns (DashboardStake[] memory) {
 
         DashboardStake[] memory dashboardStakes = new DashboardStake[](splits);
         uint256 counter;
 
-        for(uint256 i = 0; i < nftContracts[_mainPoolId].balanceOf(_address); ++i) {
-            uint256 mainTokenId = nftContracts[_mainPoolId].tokenOfOwnerByIndex(_address, i);
-            if(mainToBakc[_mainPoolId][mainTokenId].isPaired) {
-                uint256 bakcTokenId = mainToBakc[_mainPoolId][mainTokenId].tokenId;
-                address currentOwner = nftContracts[BAKC_POOL_ID].ownerOf(bakcTokenId);
+        for(uint256 i = 0; i < nftContracts[BraqFriends_POOL_ID].balanceOf(_address); ++i) {
+            uint256 mainTokenId = nftContracts[BraqFriends_POOL_ID].tokenOfOwnerByIndex(_address, i);
+            if(FriendToMonster[mainTokenId].isPaired) {
+                uint256 minorTokenId = FriendToMonster[mainTokenId].tokenId;
+                address currentOwner = nftContracts[Pair_POOL_ID].ownerOf(minorTokenId);
 
                 /* Split Pair Check*/
                 if (currentOwner != _address) {
-                    uint256 deposited = nftPosition[BAKC_POOL_ID][bakcTokenId].stakedAmount;
-                    uint256 unclaimed = deposited > 0 ? this.pendingRewards(BAKC_POOL_ID, currentOwner, bakcTokenId) : 0;
-                    uint256 rewards24Hrs = deposited > 0 ? _estimate24HourRewards(BAKC_POOL_ID, currentOwner, bakcTokenId): 0;
+                    uint256 deposited = nftPosition[Pair_POOL_ID][minorTokenId].stakedAmount;
+                    uint256 unclaimed = deposited > 0 ? this.pendingRewards(Pair_POOL_ID, currentOwner, minorTokenId) : 0;
+                    uint256 rewards24Hrs = deposited > 0 ? _estimate24HourRewards(Pair_POOL_ID, currentOwner, minorTokenId): 0;
 
                     DashboardPair memory pair = NULL_PAIR;
-                    if(bakcToMain[bakcTokenId][_mainPoolId].isPaired) {
-                        pair = DashboardPair(bakcToMain[bakcTokenId][_mainPoolId].tokenId, _mainPoolId);
+                    if(MonsterToFriend[minorTokenId].isPaired) {
+                        pair = DashboardPair(MonsterToFriend[minorTokenId].tokenId, BraqFriends_POOL_ID);
                     }
 
-                    DashboardStake memory dashboardStake = DashboardStake(BAKC_POOL_ID, bakcTokenId, deposited, unclaimed, rewards24Hrs, pair);
+                    DashboardStake memory dashboardStake = DashboardStake(Pair_POOL_ID, minorTokenId, deposited, unclaimed, rewards24Hrs, pair);
                     dashboardStakes[counter] = dashboardStake;
                     ++counter;
                 }
@@ -778,13 +776,13 @@ contract BraqTokenStaking is Ownable {
         return dashboardStakes;
     }
 
-    function _getSplitStakeCount(uint256 nftCount, address _address, uint256 _mainPoolId) private view returns (uint256) {
+    function _getSplitStakeCount(uint256 nftCount, address _address) private view returns (uint256) {
         uint256 splitCount;
         for(uint256 i = 0; i < nftCount; ++i) {
-            uint256 mainTokenId = nftContracts[_mainPoolId].tokenOfOwnerByIndex(_address, i);
-            if(mainToBakc[_mainPoolId][mainTokenId].isPaired) {
-                uint256 bakcTokenId = mainToBakc[_mainPoolId][mainTokenId].tokenId;
-                address currentOwner = nftContracts[BAKC_POOL_ID].ownerOf(bakcTokenId);
+            uint256 mainTokenId = nftContracts[BraqFriends_POOL_ID].tokenOfOwnerByIndex(_address, i);
+            if(FriendToMonster[mainTokenId].isPaired) {
+                uint256 minorTokenId = FriendToMonster[mainTokenId].tokenId;
+                address currentOwner = nftContracts[Pair_POOL_ID].ownerOf(minorTokenId);
                 if (currentOwner != _address) {
                     ++splitCount;
                 }
@@ -809,11 +807,11 @@ contract BraqTokenStaking is Ownable {
             uint256 rewards24Hrs = deposited > 0 ? _estimate24HourRewards(_poolId, _address, tokenId): 0;
 
             DashboardPair memory pair = NULL_PAIR;
-            if(_poolId == BAKC_POOL_ID) {
-                if(bakcToMain[tokenId][BAYC_POOL_ID].isPaired) {
-                    pair = DashboardPair(bakcToMain[tokenId][BAYC_POOL_ID].tokenId, BAYC_POOL_ID);
-                } else if(bakcToMain[tokenId][MAYC_POOL_ID].isPaired) {
-                    pair = DashboardPair(bakcToMain[tokenId][MAYC_POOL_ID].tokenId, MAYC_POOL_ID);
+            if(_poolId == Pair_POOL_ID) {
+                if(MonsterToFriend[tokenId].isPaired) {
+                    pair = DashboardPair(MonsterToFriend[tokenId].tokenId, BraqFriends_POOL_ID);
+                } else if(MonsterToFriend[tokenId].isPaired) {
+                    pair = DashboardPair(MonsterToFriend[tokenId].tokenId, BraqMonsters_POOL_ID);
                 }
             }
 
@@ -833,7 +831,7 @@ contract BraqTokenStaking is Ownable {
     }
 
     /**
-     * @notice Fetches the current amount of claimable ApeCoin rewards for a given position from a given pool.
+     * @notice Fetches the current amount of claimable BraqToken rewards for a given position from a given pool.
      * @return uint256 value of pending rewards
      * @param _poolId Available pool values 0-3
      * @param _address Address to lookup Position for
@@ -847,9 +845,9 @@ contract BraqTokenStaking is Ownable {
         uint256 accumulatedRewardsPerShare = pool.accumulatedRewardsPerShare;
 
         if (block.timestamp > pool.lastRewardedTimestampHour + SECONDS_PER_HOUR && pool.stakedAmount != 0) {
-            accumulatedRewardsPerShare = accumulatedRewardsPerShare + rewardsSinceLastCalculated * APE_COIN_PRECISION / pool.stakedAmount;
+            accumulatedRewardsPerShare = accumulatedRewardsPerShare + rewardsSinceLastCalculated * BRAQ_TOKEN_PRECISION / pool.stakedAmount;
         }
-        return ((position.stakedAmount * accumulatedRewardsPerShare).toInt256() - position.rewardsDebt).toUint256() / APE_COIN_PRECISION;
+        return ((position.stakedAmount * accumulatedRewardsPerShare).toInt256() - position.rewardsDebt).toUint256() / BRAQ_TOKEN_PRECISION;
     }
 
     // Convenience methods for timestamp calculation
@@ -900,42 +898,42 @@ contract BraqTokenStaking is Ownable {
                 ++i;
             }
         }
-        if (totalDeposit > 0) apeCoin.transferFrom(msg.sender, address(this), totalDeposit);
+        if (totalDeposit > 0) braqToken.transferFrom(msg.sender, address(this), totalDeposit);
     }
 
-    function _depositPairNft(uint256 mainTypePoolId, PairNftDepositWithAmount[] calldata _nfts) private {
+    function _depositPairNft(PairNftDepositWithAmount[] calldata _nfts) private {
         uint256 length = _nfts.length;
         uint256 totalDeposit;
         PairNftDepositWithAmount memory pair;
         Position storage position;
         for(uint256 i; i < length;) {
             pair = _nfts[i];
-            position = nftPosition[BAKC_POOL_ID][pair.bakcTokenId];
+            position = nftPosition[Pair_POOL_ID][pair.monsterTokenId];
 
             if(position.stakedAmount == 0) {
-                if (nftContracts[mainTypePoolId].ownerOf(pair.mainTokenId) != msg.sender
-                    || mainToBakc[mainTypePoolId][pair.mainTokenId].isPaired) revert MainTokenNotOwnedOrPaired();
-                if (nftContracts[BAKC_POOL_ID].ownerOf(pair.bakcTokenId) != msg.sender
-                    || bakcToMain[pair.bakcTokenId][mainTypePoolId].isPaired) revert BAKCNotOwnedOrPaired();
+                if (nftContracts[BraqFriends_POOL_ID].ownerOf(pair.friendTokenId) != msg.sender
+                    || FriendToMonster[pair.friendTokenId].isPaired) revert MainTokenNotOwnedOrPaired();
+                if (nftContracts[Pair_POOL_ID].ownerOf(pair.monsterTokenId) != msg.sender
+                    || FriendToMonster[pair.monsterTokenId].isPaired) revert MonsterNotOwnedOrPaired();
 
-                mainToBakc[mainTypePoolId][pair.mainTokenId] = PairingStatus(pair.bakcTokenId, true);
-                bakcToMain[pair.bakcTokenId][mainTypePoolId] = PairingStatus(pair.mainTokenId, true);
-            } else if (pair.mainTokenId != bakcToMain[pair.bakcTokenId][mainTypePoolId].tokenId
-                || pair.bakcTokenId != mainToBakc[mainTypePoolId][pair.mainTokenId].tokenId)
-                    revert BAKCAlreadyPaired();
+                FriendToMonster[pair.friendTokenId] = PairingStatus(pair.monsterTokenId, true);
+                MonsterToFriend[pair.monsterTokenId] = PairingStatus(pair.friendTokenId, true);
+            } else if (pair.friendTokenId != MonsterToFriend[pair.monsterTokenId].tokenId
+                || pair.monsterTokenId != FriendToMonster[pair.friendTokenId].tokenId)
+                    revert MonsterAlreadyPaired();
 
-            _depositNftGuard(BAKC_POOL_ID, position, pair.amount);
+            _depositNftGuard(Pair_POOL_ID, position, pair.amount);
             totalDeposit += pair.amount;
-            emit DepositPairNft(msg.sender, pair.amount, mainTypePoolId, pair.mainTokenId, pair.bakcTokenId);
+            emit DepositPairNft(msg.sender, pair.amount, pair.friendTokenId, pair.monsterTokenId);
             unchecked {
                 ++i;
             }
         }
-        if (totalDeposit > 0) apeCoin.transferFrom(msg.sender, address(this), totalDeposit);
+        if (totalDeposit > 0) braqToken.transferFrom(msg.sender, address(this), totalDeposit);
     }
 
     function _depositNftGuard(uint256 _poolId, Position storage _position, uint256 _amount) private {
-        if (_amount < MIN_DEPOSIT) revert DepositMoreThanOneAPE();
+        if (_amount < MIN_DEPOSIT) revert DepositMoreThanOneBraq();
         if (_amount + _position.stakedAmount > pools[_poolId].timeRanges[pools[_poolId].lastRewardsRangeIndex].capPerPosition)
             revert ExceededCapAmount();
 
@@ -945,13 +943,13 @@ contract BraqTokenStaking is Ownable {
     function _claim(uint256 _poolId, Position storage _position, address _recipient) private returns (uint256 rewardsToBeClaimed) {
         Pool storage pool = pools[_poolId];
 
-        int256 accumulatedApeCoins = (_position.stakedAmount * uint256(pool.accumulatedRewardsPerShare)).toInt256();
-        rewardsToBeClaimed = (accumulatedApeCoins - _position.rewardsDebt).toUint256() / APE_COIN_PRECISION;
+        int256 accumulatedBraqTokens = (_position.stakedAmount * uint256(pool.accumulatedRewardsPerShare)).toInt256();
+        rewardsToBeClaimed = (accumulatedBraqTokens - _position.rewardsDebt).toUint256() / BRAQ_TOKEN_PRECISION;
 
-        _position.rewardsDebt = accumulatedApeCoins;
+        _position.rewardsDebt = accumulatedBraqTokens;
 
         if (rewardsToBeClaimed != 0) {
-            apeCoin.transfer(_recipient, rewardsToBeClaimed);
+            braqToken.transfer(_recipient, rewardsToBeClaimed);
         }
     }
 
@@ -972,29 +970,29 @@ contract BraqTokenStaking is Ownable {
         }
     }
 
-    function _claimPairNft(uint256 mainTypePoolId, PairNft[] calldata _pairs, address _recipient) private {
+    function _claimPairNft(PairNft[] calldata _pairs, address _recipient) private {
         uint256 length = _pairs.length;
-        uint256 mainTokenId;
-        uint256 bakcTokenId;
+        uint256 friendTokenId;
+        uint256 monsterTokenId;
         Position storage position;
         PairingStatus storage mainToSecond;
         PairingStatus storage secondToMain;
         for(uint256 i; i < length;) {
-            mainTokenId = _pairs[i].mainTokenId;
-            if (nftContracts[mainTypePoolId].ownerOf(mainTokenId) != msg.sender) revert NotOwnerOfMain();
+            friendTokenId = _pairs[i].friendTokenId;
+            if (nftContracts[BraqFriends_POOL_ID].ownerOf(friendTokenId) != msg.sender) revert NotOwnerOfFriend();
 
-            bakcTokenId = _pairs[i].bakcTokenId;
-            if (nftContracts[BAKC_POOL_ID].ownerOf(bakcTokenId) != msg.sender) revert NotOwnerOfBAKC();
+            monsterTokenId = _pairs[i].monsterTokenId;
+            if (nftContracts[Pair_POOL_ID].ownerOf(monsterTokenId) != msg.sender) revert NotOwnerOfMonster();
 
-            mainToSecond = mainToBakc[mainTypePoolId][mainTokenId];
-            secondToMain = bakcToMain[bakcTokenId][mainTypePoolId];
+            mainToSecond = FriendToMonster[friendTokenId];
+            secondToMain = MonsterToFriend[monsterTokenId];
 
-            if (mainToSecond.tokenId != bakcTokenId || !mainToSecond.isPaired
-                || secondToMain.tokenId != mainTokenId || !secondToMain.isPaired) revert ProvidedTokensNotPaired();
+            if (mainToSecond.tokenId != monsterTokenId || !mainToSecond.isPaired
+                || secondToMain.tokenId != friendTokenId || !secondToMain.isPaired) revert ProvidedTokensNotPaired();
 
-            position = nftPosition[BAKC_POOL_ID][bakcTokenId];
-            uint256 rewardsToBeClaimed = _claim(BAKC_POOL_ID, position, _recipient);
-            emit ClaimRewardsPairNft(msg.sender, rewardsToBeClaimed, mainTypePoolId, mainTokenId, bakcTokenId);
+            position = nftPosition[Pair_POOL_ID][monsterTokenId];
+            uint256 rewardsToBeClaimed = _claim(Pair_POOL_ID, position, _recipient);
+            emit ClaimRewardsPairNft(msg.sender, rewardsToBeClaimed, friendTokenId, monsterTokenId);
             unchecked {
                 ++i;
             }
@@ -1035,12 +1033,12 @@ contract BraqTokenStaking is Ownable {
                 ++i;
             }
         }
-        if (totalWithdraw > 0) apeCoin.transfer(_recipient, totalWithdraw);
+        if (totalWithdraw > 0) braqToken.transfer(_recipient, totalWithdraw);
     }
 
-    function _withdrawPairNft(uint256 mainTypePoolId, PairNftWithdrawWithAmount[] calldata _nfts) private {
+    function _withdrawPairNft(PairNftWithdrawWithAmount[] calldata _nfts) private {
         address mainTokenOwner;
-        address bakcOwner;
+        address minorTokenOwner;
         PairNftWithdrawWithAmount memory pair;
         PairingStatus storage mainToSecond;
         PairingStatus storage secondToMain;
@@ -1048,37 +1046,37 @@ contract BraqTokenStaking is Ownable {
         uint256 length = _nfts.length;
         for(uint256 i; i < length;) {
             pair = _nfts[i];
-            mainTokenOwner = nftContracts[mainTypePoolId].ownerOf(pair.mainTokenId);
-            bakcOwner = nftContracts[BAKC_POOL_ID].ownerOf(pair.bakcTokenId);
+            mainTokenOwner = nftContracts[BraqFriends_POOL_ID].ownerOf(pair.friendTokenId);
+            minorTokenOwner = nftContracts[Pair_POOL_ID].ownerOf(pair.monsterTokenId);
 
             if (mainTokenOwner != msg.sender) {
-                if (bakcOwner != msg.sender) revert NeitherTokenInPairOwnedByCaller();
+                if (minorTokenOwner != msg.sender) revert NeitherTokenInPairOwnedByCaller();
             }
 
-            mainToSecond = mainToBakc[mainTypePoolId][pair.mainTokenId];
-            secondToMain = bakcToMain[pair.bakcTokenId][mainTypePoolId];
+            mainToSecond = FriendToMonster[pair.friendTokenId];
+            secondToMain = MonsterToFriend[pair.monsterTokenId];
 
-            if (mainToSecond.tokenId != pair.bakcTokenId || !mainToSecond.isPaired
-                || secondToMain.tokenId != pair.mainTokenId || !secondToMain.isPaired) revert ProvidedTokensNotPaired();
+            if (mainToSecond.tokenId != pair.monsterTokenId || !mainToSecond.isPaired
+                || secondToMain.tokenId != pair.friendTokenId || !secondToMain.isPaired) revert ProvidedTokensNotPaired();
 
-            position = nftPosition[BAKC_POOL_ID][pair.bakcTokenId];
+            position = nftPosition[Pair_POOL_ID][pair.monsterTokenId];
             if(!pair.isUncommit) {
                 if(pair.amount == position.stakedAmount) revert UncommitWrongParameters();
             }
-            if (mainTokenOwner != bakcOwner) {
+            if (mainTokenOwner != minorTokenOwner) {
                 if (!pair.isUncommit) revert SplitPairCantPartiallyWithdraw();
             }
 
             if (pair.isUncommit) {
-                uint256 rewardsToBeClaimed = _claim(BAKC_POOL_ID, position, bakcOwner);
-                mainToBakc[mainTypePoolId][pair.mainTokenId] = PairingStatus(0, false);
-                bakcToMain[pair.bakcTokenId][mainTypePoolId] = PairingStatus(0, false);
-                emit ClaimRewardsPairNft(msg.sender, rewardsToBeClaimed, mainTypePoolId, pair.mainTokenId, pair.bakcTokenId);
+                uint256 rewardsToBeClaimed = _claim(Pair_POOL_ID, position, minorTokenOwner);
+                FriendToMonster[pair.friendTokenId] = PairingStatus(0, false);
+                MonsterToFriend[pair.monsterTokenId] = PairingStatus(0, false);
+                emit ClaimRewardsPairNft(msg.sender, rewardsToBeClaimed, pair.friendTokenId, pair.monsterTokenId);
             }
             uint256 finalAmountToWithdraw = pair.isUncommit ? position.stakedAmount: pair.amount;
-            _withdraw(BAKC_POOL_ID, position, finalAmountToWithdraw);
-            apeCoin.transfer(mainTokenOwner, finalAmountToWithdraw);
-            emit WithdrawPairNft(msg.sender, finalAmountToWithdraw, mainTypePoolId, pair.mainTokenId, pair.bakcTokenId);
+            _withdraw(Pair_POOL_ID, position, finalAmountToWithdraw);
+            braqToken.transfer(mainTokenOwner, finalAmountToWithdraw);
+            emit WithdrawPairNft(msg.sender, finalAmountToWithdraw, pair.friendTokenId, pair.monsterTokenId);
             unchecked {
                 ++i;
             }
