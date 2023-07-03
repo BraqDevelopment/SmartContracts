@@ -10,8 +10,8 @@ interface IBraqMonsters {
 }
 
 contract MonstersClaim is Ownable {
-    // tokenId => (quarter => claimed)
-    // further q stands for quarter 
+    /// @dev tokenId => (quarter => claimed)
+    /// @notice further q stands for quarter  
     mapping(uint32 => mapping(uint8 => bool)) public claimed;
     mapping(uint8 => uint256) public fundingTime;
     uint8 public currentQuarter = 0; 
@@ -53,7 +53,9 @@ contract MonstersClaim is Ownable {
     /**
      * @notice Claim your BraqMosnters NFTs 
      * @param tokenIds Array of unique NFT identifiers
-     * @dev Amount of received tokens varies with the token Ids
+     * @dev For single tokens insert integer or hex number, for arrays - only hex numbers
+     * Example: ids - 100, 2 => [0x64,0x2] (without spaces)
+     * Amount of received tokens varies with the token Ids
      */
     function claimTokens(uint16[] memory tokenIds) external {
         require(isActive == true, "Claim was stopped");
@@ -71,8 +73,8 @@ contract MonstersClaim is Ownable {
         emit TokensClaimed(msg.sender, tokenIds.length);
     }
 
-    // withdraw unclaimed tokens
-    // amount in BRAQ 
+    /// @notice Withdraw unclaimed tokens
+    /// @dev amount in BRAQ  
     function withdrawTokens(uint256 amount) external onlyOwner {
         require(BraqTokenInstance.balanceOf(address(this)) >= amount * 10 ** 18, "Too much tokens to withdraw");
         BraqTokenInstance.transfer(msg.sender, amount * 10 ** 18);
