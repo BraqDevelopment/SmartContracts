@@ -49,8 +49,13 @@ contract MonstersClaim is Ownable {
         isActive = false;
     }
 
-    // Both contracts have 4444 tokens
-    function claimTokens(uint32[] memory tokenIds) external {
+    // Contract has 4444 tokens
+    /**
+     * @notice Claim your BraqMosnters NFTs 
+     * @param tokenIds Array of unique NFT identifiers
+     * @dev Amount of received tokens varies with the token Ids
+     */
+    function claimTokens(uint16[] memory tokenIds) external {
         require(isActive == true, "Claim was stopped");
         require(currentQuarter > 0 && currentQuarter < 5);
         require(tokenIds.length <= BraqMonstersInstance.balanceOf(msg.sender), "Claiming more tokens than you have!");

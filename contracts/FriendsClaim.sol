@@ -49,8 +49,13 @@ contract FriendsClaim is Ownable {
         isActive = false;
     }
 
-    // Both contracts have 4444 tokens
-    function claimTokens(uint32[] memory tokenIds) external {
+    // Contract has 4444 tokens
+    /**
+     * @notice Claim your BraqFriends NFTs 
+     * @param tokenIds Array of unique NFT identifiers
+     * @dev Amount of received tokens varies with the token Ids
+     */
+    function claimTokens(uint16[] memory tokenIds) external {
         require(isActive == true, "Claim was stopped");
         require(currentQuarter > 0 && currentQuarter < 5, "Current quarter is wrong");
         require(tokenIds.length <= BraqFriendsInstance.balanceOf(msg.sender), "Claiming more tokens than you have!");
