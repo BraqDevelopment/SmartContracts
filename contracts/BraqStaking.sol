@@ -55,23 +55,23 @@ contract BraqTokenStaking is Ownable {
     }
     /// @dev Struct for depositing into the Pair pool
     struct PairNftDepositWithAmount {
-        uint32 mainTokenId;
-        uint32 bakcTokenId;
+        uint32 friendTokenId;
+        uint32 monsterTokenId;
         uint184 amount;
     }
     /// @dev Struct for withdrawing from Pair pool
     struct PairNftWithdrawWithAmount {
-        uint32 mainTokenId;
-        uint32 bakcTokenId;
+        uint32 friendTokenId;
+        uint32 monsterTokenId;
         uint184 amount;
         bool isUncommit;
     }
     /// @dev Struct for claiming from an NFT pool
     struct PairNft {
-        uint128 mainTokenId;
-        uint128 bakcTokenId;
+        uint128 friendTokenId;
+        uint128 monsterTokenId;
     }
-    /// @dev NFT paired status.  Can be used bi-directionally (BraqFriends -> BraqMonsters ) or (BraqMonsters -> BraqFriends)
+    /// @dev NFT paired status.  Can be used bi-directionally (BraqFriends -> BraqMonsters) or (BraqMonsters -> BraqFriends)
     struct PairingStatus {
         uint248 tokenId;
         bool isPaired;
@@ -214,12 +214,12 @@ contract BraqTokenStaking is Ownable {
     // Deposit/Commit Methods
 
     /**
-     * @notice Deposit ApeCoin to the ApeCoin Pool
-     * @param _amount Amount in ApeCoin
+     * @notice Deposit BraqToken to the BraqToken Pool
+     * @param _amount Amount in BraqToken
      * @param _recipient Address the deposit it stored to
-     * @dev ApeCoin deposit must be >= 1 ApeCoin
+     * @dev BraqToken deposit must be >= 1 BraqToken
      */
-    function depositApeCoin(uint256 _amount, address _recipient) public {
+    function depositBraqToken(uint256 _amount, address _recipient) public {
         if (_amount < MIN_DEPOSIT) revert DepositMoreThanOneBraq();
         updatePool(BraqToken_POOL_ID);
 
@@ -232,48 +232,44 @@ contract BraqTokenStaking is Ownable {
     }
 
     /**
-     * @notice Deposit ApeCoin to the ApeCoin Pool
-     * @param _amount Amount in ApeCoin
-     * @dev Deposit on behalf of msg.sender. ApeCoin deposit must be >= 1 ApeCoin
+     * @notice Deposit BraqToken to the BraqToken Pool
+     * @param _amount Amount in BraqToken
+     * @dev Deposit on behalf of msg.sender. BraqToken deposit must be >= 1 BraqToken
      */
     function depositSelfApeCoin(uint256 _amount) external {
-        depositApeCoin(_amount, msg.sender);
+        depositBraqToken(_amount, msg.sender);
     }
 
     /**
-     * @notice Deposit ApeCoin to the BAYC Pool
+     * @notice Deposit BraqToken to the Friends Pool
      * @param _nfts Array of SingleNft structs
-     * @dev Commits 1 or more BAYC NFTs, each with an ApeCoin amount to the BAYC pool.\
-     * Each BAYC committed must attach an ApeCoin amount >= 1 ApeCoin and <= the BAYC pool cap amount.
+     * @dev Commits 1 or more BraqFriends NFTs, each with a BraqToken amount to the Friends pool.\
+     * Each BraqFriend committed must attach an BraqToken amount >= 1 BraqToken and <= the BraqFriends pool cap amount.
      */
-    function depositBAYC(SingleNft[] calldata _nfts) external {
-        _depositNft(BAYC_POOL_ID, _nfts);
+    function depositBraqFriends(SingleNft[] calldata _nfts) external {
+        _depositNft(BraqFriends_POOL_ID, _nfts);
     }
 
     /**
-     * @notice Deposit ApeCoin to the MAYC Pool
+     * @notice Deposit BraqToken to the BraqMonsters Pool
      * @param _nfts Array of SingleNft structs
-     * @dev Commits 1 or more MAYC NFTs, each with an ApeCoin amount to the MAYC pool.\
-     * Each MAYC committed must attach an ApeCoin amount >= 1 ApeCoin and <= the MAYC pool cap amount.
+     * @dev Commits 1 or more BraqMonsters NFTs, each with an BraqToken amount to the Monsters pool.\
+     * Each Monster committed must attach an BraqToken amount >= 1 BraqToken and <= the Monsters pool cap amount.
      */
-    function depositMAYC(SingleNft[] calldata _nfts) external {
-        _depositNft(MAYC_POOL_ID, _nfts);
+    function depositBraqMonster(SingleNft[] calldata _nfts) external {
+        _depositNft(BraqMonsters_POOL_ID, _nfts);
     }
 
     /**
-     * @notice Deposit ApeCoin to the Pair Pool, where Pair = (BAYC + BAKC) or (MAYC + BAKC)
-     * @param _baycPairs Array of PairNftDepositWithAmount structs
-     * @param _maycPairs Array of PairNftDepositWithAmount structs
-     * @dev Commits 1 or more Pairs, each with an ApeCoin amount to the Pair pool.\
-     * Each BAKC committed must attach an ApeCoin amount >= 1 ApeCoin and <= the Pair pool cap amount.\
-     * Example 1: BAYC + BAKC + 1 ApeCoin:  [[0, 0, "1000000000000000000"],[]]\
-     * Example 2: MAYC + BAKC + 1 ApeCoin:  [[], [0, 0, "1000000000000000000"]]\
-     * Example 3: (BAYC + BAKC + 1 ApeCoin) and (MAYC + BAKC + 1 ApeCoin): [[0, 0, "1000000000000000000"], [0, 1, "1000000000000000000"]]
+     * @notice Deposit BraqToken to the Pair Pool, where Pair = Friend + Monster
+     * @param _Pairs Array of PairNftDepositWithAmount structs
+     * @dev Commits 1 or more Pairs, each with an BraqToken amount to the Pair pool.\
+     * Each Pair committed must attach an BraqToken amount >= 1 BraqToken and <= the Pair pool cap amount.\
+     * Example : Friend + Monster + 1 BraqToken:  [[1, 1, "1000000000000000000"],[]]\
      */
-    function depositBAKC(PairNftDepositWithAmount[] calldata _baycPairs, PairNftDepositWithAmount[] calldata _maycPairs) external {
-        updatePool(BAKC_POOL_ID);
-        _depositPairNft(BAYC_POOL_ID, _baycPairs);
-        _depositPairNft(MAYC_POOL_ID, _maycPairs);
+    function depositPair(PairNftDepositWithAmount[] calldata _Pairs) external {
+        updatePool(Pair_POOL_ID);
+        _depositPairNft(BraqFriends_POOL_ID, _Pairs);
     }
 
     // Claim Rewards Methods
