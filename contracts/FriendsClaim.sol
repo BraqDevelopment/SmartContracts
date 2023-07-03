@@ -62,7 +62,7 @@ contract FriendsClaim is Ownable {
         require(currentQuarter > 0 && currentQuarter < 5, "Current quarter is wrong");
         require(tokenIds.length <= BraqFriendsInstance.balanceOf(msg.sender), "Claiming more tokens than you have!");
         uint256 braqAmount = 0; // in BRAQ tokens
-        for (uint32 i=0; i < tokenIds.length; i++){
+        for (uint32 i=0; i < tokenIds.length; ++i){
             require(tokenIds[i]<= 4444 && tokenIds[i]>0, "Claiming not existing token!");
             require(!claimed[tokenIds[i]][currentQuarter], "Token already claimed");
             require(BraqFriendsInstance.ownerOf(tokenIds[i]) == msg.sender, "Claiming not owned tokens!");
@@ -79,15 +79,18 @@ contract FriendsClaim is Ownable {
     }
 
     /// @notice Withdraw unclaimed tokens
-    /// @dev amount in BRAQ 
+    /// @param amount amount in BRAQ 
     function withdrawTokens(uint256 amount) external onlyOwner {
         require(BraqTokenInstance.balanceOf(address(this)) >= amount * 10 ** 18, "Too much tokens to withdraw");
         BraqTokenInstance.transfer(msg.sender, amount * 10 ** 18);
     }
 
-    function withdrawETH(uint256 amount) external onlyOwner { // Amount in wei
+    /// @notice Withdraw ETH, if any
+    /// @param amount amount in wei 
+    /// @dev Transfer ETH to the caller
+    function withdrawETH(uint256 amount) external onlyOwner { 
         require(address(this).balance > amount , "Insufficient contract balance");
-        // Transfer ETH to the caller
+        
         payable(msg.sender).transfer(amount);
     }
 

@@ -80,41 +80,41 @@ contract BraqVesting is Ownable{
 
         // Setting Pools' Funding
         // Ecosystem
-        for (uint8 i = 0; i < 5; i++) {
+        for (uint8 i = 0; i < 5; ++i) {
             pools[Pools.Ecosystem].amountToFund[i] = 5 * 10 ** 6;
         }
-        for (uint8 i = 5; i < 9; i++) {
+        for (uint8 i = 5; i < 9; ++i) {
             pools[Pools.Ecosystem].amountToFund[i] = 25 * 10 ** 5;
         }
-        for (uint8 i = 10; i < 17; i++) {
+        for (uint8 i = 10; i < 17; ++i) {
             pools[Pools.Ecosystem].amountToFund[i] = 125 * 10 ** 4;
         }
         // Rewards
-        for (uint8 i = 1; i < 5; i++) {
+        for (uint8 i = 1; i < 5; ++i) {
         pools[Pools.Rewards].amountToFund[i] = 75 * 10 ** 5;
         }
         // Incentives 
-        for (uint8 i = 3; i < 7; i++) {
+        for (uint8 i = 3; i < 7; ++i) {
         pools[Pools.Incentives].amountToFund[i] = 4687500;
         }
         // Listings
         // TGE 7 500 000
         BraqTokenInstance.transfer(listingsPoolAddress, 7500000 * 10 ** 18);
-        for (uint8 i = 1; i < 5; i++) {
+        for (uint8 i = 1; i < 5; ++i) {
         pools[Pools.Listings].amountToFund[i] = 5 * 10 ** 6;
         }
         // Private
-        for (uint8 i = 5; i < 9; i++) {
+        for (uint8 i = 5; i < 9; ++i) {
         pools[Pools.Private].amountToFund[i] = 4687500;
         }
         // Team 
-        for (uint8 i = 2; i < 12; i++) {
+        for (uint8 i = 2; i < 12; ++i) {
         pools[Pools.Team].amountToFund[i] = 75 * 10 ** 4;
         }
         // Marketing 
         // TGE 7 500 000
         BraqTokenInstance.transfer(marketingPoolAddress, 7500000 * 10 ** 18);
-        for (uint8 i = 2; i < 5; i++) {
+        for (uint8 i = 2; i < 5; ++i) {
         pools[Pools.Marketing].amountToFund[i] = 937500;
         }
         pools[Pools.Marketing].amountToFund[5] = 625000;
