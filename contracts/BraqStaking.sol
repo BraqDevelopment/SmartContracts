@@ -97,7 +97,7 @@ contract BraqTokenStaking is Ownable {
     /// @notice Internal BraqToken amount for distributing staking reward claims
     IERC20 public immutable braqToken;
     uint256 private constant BRAQ_TOKEN_PRECISION = 1e18;
-    uint256 private constant MIN_DEPOSIT = 1 * BRAQ_TOKEN_PRECISION;
+    uint256 private constant MIN_DEPOSIT = 100 * BRAQ_TOKEN_PRECISION;
     uint256 private constant SECONDS_PER_HOUR = 3600;
     uint256 private constant SECONDS_PER_MINUTE = 60;
 
@@ -111,7 +111,7 @@ contract BraqTokenStaking is Ownable {
     mapping(uint256 => ERC721Enumerable) public nftContracts;
     /// @dev poolId => tokenId => nft position
     mapping(uint256 => mapping(uint256 => Position)) public nftPosition;
-    /// @dev Friends token ID => back token ID
+    /// @dev Friends token ID => monster token ID
     mapping(uint256 => PairingStatus) public FriendToMonster;
     /// @dev Monster Token ID => Friends token ID
     mapping(uint256 => PairingStatus) public MonsterToFriend;
@@ -217,7 +217,7 @@ contract BraqTokenStaking is Ownable {
      * @notice Deposit BraqToken to the BraqToken Pool
      * @param _amount Amount in BraqToken
      * @param _recipient Address the deposit it stored to
-     * @dev BraqToken deposit must be >= 1 BraqToken
+     * @dev BraqToken deposit must be >= 100 BraqToken
      */
     function depositBraqToken(uint256 _amount, address _recipient) public {
         if (_amount < MIN_DEPOSIT) revert DepositMoreThanOneBraq();
@@ -234,7 +234,7 @@ contract BraqTokenStaking is Ownable {
     /**
      * @notice Deposit BraqToken to the BraqToken Pool
      * @param _amount Amount in BraqToken
-     * @dev Deposit on behalf of msg.sender. BraqToken deposit must be >= 1 BraqToken
+     * @dev Deposit on behalf of msg.sender. BraqToken deposit must be >= 100 BraqToken
      */
     function depositSelfBraqToken(uint256 _amount) external {
         depositBraqToken(_amount, msg.sender);
@@ -244,7 +244,7 @@ contract BraqTokenStaking is Ownable {
      * @notice Deposit BraqToken to the Friends Pool
      * @param _nfts Array of SingleNft structs
      * @dev Commits 1 or more BraqFriends NFTs, each with a BraqToken amount to the Friends pool.\
-     * Each BraqFriend committed must attach an BraqToken amount >= 1 BraqToken and <= the BraqFriends pool cap amount.
+     * Each BraqFriend committed must attach an BraqToken amount >= 100 BraqToken and <= the BraqFriends pool cap amount.
      */
     function depositBraqFriends(SingleNft[] calldata _nfts) external {
         _depositNft(BraqFriends_POOL_ID, _nfts);
@@ -254,7 +254,7 @@ contract BraqTokenStaking is Ownable {
      * @notice Deposit BraqToken to the BraqMonsters Pool
      * @param _nfts Array of SingleNft structs
      * @dev Commits 1 or more BraqMonsters NFTs, each with an BraqToken amount to the Monsters pool.\
-     * Each Monster committed must attach an BraqToken amount >= 1 BraqToken and <= the Monsters pool cap amount.
+     * Each Monster committed must attach an BraqToken amount >= 100 BraqToken and <= the Monsters pool cap amount.
      */
     function depositBraqMonster(SingleNft[] calldata _nfts) external {
         _depositNft(BraqMonsters_POOL_ID, _nfts);
@@ -264,8 +264,8 @@ contract BraqTokenStaking is Ownable {
      * @notice Deposit BraqToken to the Pair Pool, where Pair = Friend + Monster
      * @param _Pairs Array of PairNftDepositWithAmount structs
      * @dev Commits 1 or more Pairs, each with an BraqToken amount to the Pair pool.\
-     * Each Pair committed must attach an BraqToken amount >= 1 BraqToken and <= the Pair pool cap amount.\
-     * Example : Friend + Monster + 1 BraqToken:  [[1, 1, "1000000000000000000"],[]]\
+     * Each Pair committed must attach an BraqToken amount >= 100 BraqToken and <= the Pair pool cap amount.\
+     * Example : Friend + Monster + 100 BraqToken:  [[1, 1, "100000000000000000000"],[]]\
      */
     function depositPair(PairNftDepositWithAmount[] calldata _Pairs) external {
         updatePool(Pair_POOL_ID);
@@ -425,7 +425,7 @@ contract BraqTokenStaking is Ownable {
      * @dev In practice one Time Range will represent one quarter (defined by `_startTimestamp`and `_endTimeStamp` as whole hours)
      * where the rewards per hour is constant for a given pool.
      * @param _poolId Available pool values 0-3
-     * @param _amount Total amount of ApeCoin to be distributed over the range
+     * @param _amount Total amount of BraqToken to be distributed over the range
      * @param _startTimestamp Whole hour timestamp representation
      * @param _endTimeStamp Whole hour timestamp representation
      * @param _capPerPosition Per position cap amount determined by poolId
@@ -437,7 +437,7 @@ contract BraqTokenStaking is Ownable {
         uint256 _endTimeStamp,
         uint256 _capPerPosition) external onlyOwner
     {
-        if (_poolId > BAKC_POOL_ID) revert InvalidPoolId();
+        if (_poolId > Pair_POOL_ID) revert InvalidPoolId();
         if (_startTimestamp >= _endTimeStamp) revert StartMustBeGreaterThanEnd();
         if (getMinute(_startTimestamp) > 0 || getSecond(_startTimestamp) > 0) revert StartNotWholeHour();
         if (getMinute(_endTimeStamp) > 0 || getSecond(_endTimeStamp) > 0) revert EndNotWholeHour();
@@ -478,7 +478,7 @@ contract BraqTokenStaking is Ownable {
 
     /**
      * @notice Lookup available rewards for a pool over a given time range
-     * @return uint256 The amount of ApeCoin rewards to be distributed by pool for a given time range
+     * @return uint256 The amount of BraqToken rewards to be distributed by pool for a given time range
      * @return uint256 The amount of time ranges
      * @param _poolId Available pool values 0-3
      * @param _from Whole hour timestamp representation
@@ -542,7 +542,8 @@ contract BraqTokenStaking is Ownable {
         if (pool.lastRewardsRangeIndex != index) {
             pool.lastRewardsRangeIndex = index.toUint16();
         }
-        pool.accumulatedRewardsPerShare = (pool.accumulatedRewardsPerShare + (rewards * APE_COIN_PRECISION) / pool.stakedAmount).toUint96();
+        // amount of rewards per token
+        pool.accumulatedRewardsPerShare = (pool.accumulatedRewardsPerShare + (rewards * BRAQ_TOKEN_PRECISION) / pool.stakedAmount).toUint96();
         pool.lastRewardedTimestampHour = previousTimestampHour > lastTimestampHour ? lastTimestampHour : previousTimestampHour;
 
         emit UpdatePool(_poolId, pool.lastRewardedTimestampHour, pool.stakedAmount, pool.accumulatedRewardsPerShare);
@@ -563,21 +564,21 @@ contract BraqTokenStaking is Ownable {
 
     /**
      * @notice Fetches a PoolUI struct (poolId, stakedAmount, currentTimeRange) for each reward pool
-     * @return PoolUI for ApeCoin.
-     * @return PoolUI for BAYC.
-     * @return PoolUI for MAYC.
-     * @return PoolUI for BAKC.
+     * @return PoolUI for BraqToken.
+     * @return PoolUI for BraqFriends.
+     * @return PoolUI for BraqMonsters.
+     * @return PoolUI for Pair.
      */
     function getPoolsUI() public view returns (PoolUI memory, PoolUI memory, PoolUI memory, PoolUI memory) {
-        Pool memory apeCoinPool = pools[0];
-        Pool memory baycPool = pools[1];
-        Pool memory maycPool = pools[2];
-        Pool memory bakcPool = pools[3];
-        uint256 current = getCurrentTimeRangeIndex(apeCoinPool);
-        return (PoolUI(0,apeCoinPool.stakedAmount, apeCoinPool.timeRanges[current]),
-                PoolUI(1,baycPool.stakedAmount, baycPool.timeRanges[current]),
-                PoolUI(2,maycPool.stakedAmount, maycPool.timeRanges[current]),
-                PoolUI(3,bakcPool.stakedAmount, bakcPool.timeRanges[current]));
+        Pool memory braqTokenPool = pools[0];
+        Pool memory braqFriendsPool = pools[1];
+        Pool memory braqMonstersPool = pools[2];
+        Pool memory PairPool = pools[3];
+        uint256 current = getCurrentTimeRangeIndex(braqTokenPool);
+        return (PoolUI(0,braqTokenPool.stakedAmount, braqTokenPool.timeRanges[current]),
+                PoolUI(1,braqFriendsPool.stakedAmount, braqFriendsPool.timeRanges[current]),
+                PoolUI(2,braqMonstersPool.stakedAmount, braqMonstersPool.timeRanges[current]),
+                PoolUI(3,PairPool.stakedAmount, PairPool.timeRanges[current]));
     }
 
     /**
@@ -588,8 +589,8 @@ contract BraqTokenStaking is Ownable {
     function stakedTotal(address _address) external view returns (uint256) {
         uint256 total = addressPosition[_address].stakedAmount;
 
-        total += _stakedTotal(BAYC_POOL_ID, _address);
-        total += _stakedTotal(MAYC_POOL_ID, _address);
+        total += _stakedTotal(BraqFriends_POOL_ID, _address);
+        total += _stakedTotal(BraqMonsters_POOL_ID, _address);
         total += _stakedTotalPair(_address);
 
         return total;
@@ -609,21 +610,21 @@ contract BraqTokenStaking is Ownable {
     function _stakedTotalPair(address _addr) private view returns (uint256) {
         uint256 total = 0;
 
-        uint256 nftCount = nftContracts[BAYC_POOL_ID].balanceOf(_addr);
+        uint256 nftCount = nftContracts[BraqFriends_POOL_ID].balanceOf(_addr);
         for(uint256 i = 0; i < nftCount; ++i) {
-            uint256 baycTokenId = nftContracts[BAYC_POOL_ID].tokenOfOwnerByIndex(_addr, i);
-            if (mainToBakc[BAYC_POOL_ID][baycTokenId].isPaired) {
-                uint256 bakcTokenId = mainToBakc[BAYC_POOL_ID][baycTokenId].tokenId;
-                total += nftPosition[BAKC_POOL_ID][bakcTokenId].stakedAmount;
+            uint256 friendTokenId = nftContracts[BraqFriends_POOL_ID].tokenOfOwnerByIndex(_addr, i);
+            if (FriendToMonster[BraqFriends_POOL_ID][friendTokenId].isPaired) {
+                uint256 bakcTokenId = FriendToMonster[BraqFriends_POOL_ID][friendTokenId].tokenId;
+                total += nftPosition[BraqFriends_POOL_ID][friendTokenId].stakedAmount;
             }
         }
 
-        nftCount = nftContracts[MAYC_POOL_ID].balanceOf(_addr);
+        nftCount = nftContracts[BraqMonsters_POOL_ID].balanceOf(_addr);
         for(uint256 i = 0; i < nftCount; ++i) {
-            uint256 maycTokenId = nftContracts[MAYC_POOL_ID].tokenOfOwnerByIndex(_addr, i);
-            if (mainToBakc[MAYC_POOL_ID][maycTokenId].isPaired) {
-                uint256 bakcTokenId = mainToBakc[MAYC_POOL_ID][maycTokenId].tokenId;
-                total += nftPosition[BAKC_POOL_ID][bakcTokenId].stakedAmount;
+            uint256 monsterTokenId = nftContracts[BraqMonsters_POOL_ID].tokenOfOwnerByIndex(_addr, i);
+            if (FriendToMonster[BraqMonsters_POOL_ID][monsterTokenId].isPaired) {
+                uint256 bakcTokenId = FriendToMonster[BraqMonsters_POOL_ID][monsterTokenId].tokenId;
+                total += nftPosition[BraqMonsters_POOL_ID][monsterTokenId].stakedAmount;
             }
         }
 
@@ -638,31 +639,31 @@ contract BraqTokenStaking is Ownable {
      */
     function getAllStakes(address _address) public view returns (DashboardStake[] memory) {
 
-        DashboardStake memory apeCoinStake = getApeCoinStake(_address);
-        DashboardStake[] memory baycStakes = getBaycStakes(_address);
-        DashboardStake[] memory maycStakes = getMaycStakes(_address);
-        DashboardStake[] memory bakcStakes = getBakcStakes(_address);
+        DashboardStake memory braqTokenStake = getBraqTokenStake(_address);
+        DashboardStake[] memory friendsStakes = getFriendsStakes(_address);
+        DashboardStake[] memory monsterStakes = getMonstersStakes(_address);
+        DashboardStake[] memory pairStakes = getPairStakes(_address);
         DashboardStake[] memory splitStakes = getSplitStakes(_address);
 
-        uint256 count = (baycStakes.length + maycStakes.length + bakcStakes.length + splitStakes.length + 1);
+        uint256 count = (friendsStakes.length + monsterStakes.length + pairStakes.length + splitStakes.length + 1);
         DashboardStake[] memory allStakes = new DashboardStake[](count);
 
         uint256 offset = 0;
-        allStakes[offset] = apeCoinStake;
+        allStakes[offset] = braqTokenStake;
         ++offset;
 
-        for(uint256 i = 0; i < baycStakes.length; ++i) {
-            allStakes[offset] = baycStakes[i];
+        for(uint256 i = 0; i < friendsStakes.length; ++i) {
+            allStakes[offset] = friendsStakes[i];
             ++offset;
         }
 
-        for(uint256 i = 0; i < maycStakes.length; ++i) {
-            allStakes[offset] = maycStakes[i];
+        for(uint256 i = 0; i < monsterStakes.length; ++i) {
+            allStakes[offset] = monsterStakes[i];
             ++offset;
         }
 
-        for(uint256 i = 0; i < bakcStakes.length; ++i) {
-            allStakes[offset] = bakcStakes[i];
+        for(uint256 i = 0; i < pairStakes.length; ++i) {
+            allStakes[offset] = pairStakes[i];
             ++offset;
         }
 
@@ -675,70 +676,70 @@ contract BraqTokenStaking is Ownable {
     }
 
     /**
-     * @notice Fetches a DashboardStake for the ApeCoin pool
+     * @notice Fetches a DashboardStake for the BraqToken pool
      * @return dashboardStake A dashboardStake struct
      * @param _address An Ethereum address
      */
-    function getApeCoinStake(address _address) public view returns (DashboardStake memory) {
+    function getBraqTokenStake(address _address) public view returns (DashboardStake memory) {
         uint256 tokenId = 0;
         uint256 deposited = addressPosition[_address].stakedAmount;
         uint256 unclaimed = deposited > 0 ? this.pendingRewards(0, _address, tokenId) : 0;
         uint256 rewards24Hrs = deposited > 0 ? _estimate24HourRewards(0, _address, 0) : 0;
 
-        return DashboardStake(APECOIN_POOL_ID, tokenId, deposited, unclaimed, rewards24Hrs, NULL_PAIR);
+        return DashboardStake(BraqToken_POOL_ID, tokenId, deposited, unclaimed, rewards24Hrs, NULL_PAIR);
     }
 
     /**
-     * @notice Fetches an array of DashboardStakes for the BAYC pool
+     * @notice Fetches an array of DashboardStakes for the BraqFriends pool
      * @return dashboardStakes An array of DashboardStake structs
      */
-    function getBaycStakes(address _address) public view returns (DashboardStake[] memory) {
-        return _getStakes(_address, BAYC_POOL_ID);
+    function getFriendsStakes(address _address) public view returns (DashboardStake[] memory) {
+        return _getStakes(_address, BraqFriends_POOL_ID);
     }
 
     /**
-     * @notice Fetches an array of DashboardStakes for the MAYC pool
+     * @notice Fetches an array of DashboardStakes for the BraqMonsters pool
      * @return dashboardStakes An array of DashboardStake structs
      */
-    function getMaycStakes(address _address) public view returns (DashboardStake[] memory) {
-        return _getStakes(_address, MAYC_POOL_ID);
+    function getMonstersStakes(address _address) public view returns (DashboardStake[] memory) {
+        return _getStakes(_address, BraqMonsters_POOL_ID);
     }
 
     /**
-     * @notice Fetches an array of DashboardStakes for the BAKC pool
+     * @notice Fetches an array of DashboardStakes for the Pair pool
      * @return dashboardStakes An array of DashboardStake structs
      */
-    function getBakcStakes(address _address) public view returns (DashboardStake[] memory) {
-        return _getStakes(_address, BAKC_POOL_ID);
+    function getPairStakes(address _address) public view returns (DashboardStake[] memory) {
+        return _getStakes(_address, Pair_POOL_ID);
     }
 
     /**
      * @notice Fetches an array of DashboardStakes for the Pair Pool when ownership is split \
-     * ie (BAYC/MAYC) and BAKC in pair pool have different owners.
+     * ie BraqFriends and BraqMonsters in pair pool have different owners.
      * @return dashboardStakes An array of DashboardStake structs
      * @param _address An Ethereum address
      */
     function getSplitStakes(address _address) public view returns (DashboardStake[] memory) {
-        uint256 baycSplits = _getSplitStakeCount(nftContracts[BAYC_POOL_ID].balanceOf(_address), _address, BAYC_POOL_ID);
-        uint256 maycSplits = _getSplitStakeCount(nftContracts[MAYC_POOL_ID].balanceOf(_address), _address, MAYC_POOL_ID);
-        uint256 totalSplits = baycSplits + maycSplits;
+        uint256 friendsSplits = _getSplitStakeCount(nftContracts[BraqFriends_POOL_ID].balanceOf(_address), _address, BraqFriends_POOL_ID);
+        uint256 monstersSplits = _getSplitStakeCount(nftContracts[BraqMonsters_POOL_ID].balanceOf(_address), _address, BraqMonsters_POOL_ID);
+        uint256 totalSplits = friendsSplits + monstersSplits;
 
         if(totalSplits == 0) {
             return new DashboardStake[](0);
         }
 
-        DashboardStake[] memory baycSplitStakes = _getSplitStakes(baycSplits, _address, BAYC_POOL_ID);
-        DashboardStake[] memory maycSplitStakes = _getSplitStakes(maycSplits, _address, MAYC_POOL_ID);
+        DashboardStake[] memory friendsSplitStakes = _getSplitStakes(friendsSplits, _address, BraqFriends_POOL_ID);
+        DashboardStake[] memory monsterSplitStakes = _getSplitStakes(monstersSplits, _address, BraqMonsters_POOL_ID);
 
         DashboardStake[] memory splitStakes = new DashboardStake[](totalSplits);
         uint256 offset = 0;
-        for(uint256 i = 0; i < baycSplitStakes.length; ++i) {
-            splitStakes[offset] = baycSplitStakes[i];
+        for(uint256 i = 0; i < friendsSplitStakes.length; ++i) {
+            splitStakes[offset] = friendsSplitStakes[i];
             ++offset;
         }
 
-        for(uint256 i = 0; i < maycSplitStakes.length; ++i) {
-            splitStakes[offset] = maycSplitStakes[i];
+        for(uint256 i = 0; i < monsterSplitStakes.length; ++i) {
+            splitStakes[offset] = monsterSplitStakes[i];
             ++offset;
         }
 
