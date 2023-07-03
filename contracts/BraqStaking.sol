@@ -278,73 +278,70 @@ contract BraqTokenStaking is Ownable {
      * @notice Claim rewards for msg.sender and send to recipient
      * @param _recipient Address to send claim reward to
      */
-    function claimApeCoin(address _recipient) public {
-        updatePool(APECOIN_POOL_ID);
+    function claimBraqToken(address _recipient) public {
+        updatePool(BraqToken_POOL_ID);
 
         Position storage position = addressPosition[msg.sender];
-        uint256 rewardsToBeClaimed = _claim(APECOIN_POOL_ID, position, _recipient);
+        uint256 rewardsToBeClaimed = _claim(BraqToken_POOL_ID, position, _recipient);
 
         emit ClaimRewards(msg.sender, rewardsToBeClaimed, _recipient);
     }
 
     /// @notice Claim and send rewards
-    function claimSelfApeCoin() external {
-        claimApeCoin(msg.sender);
+    function claimSelfBraqToken() external {
+        claimBraqToken(msg.sender);
     }
 
     /**
-     * @notice Claim rewards for array of BAYC NFTs and send to recipient
+     * @notice Claim rewards for array of Friends NFTs and send to recipient
      * @param _nfts Array of NFTs owned and committed by the msg.sender
      * @param _recipient Address to send claim reward to
      */
-    function claimBAYC(uint256[] calldata _nfts, address _recipient) external {
-        _claimNft(BAYC_POOL_ID, _nfts, _recipient);
+    function claimFriends(uint256[] calldata _nfts, address _recipient) external {
+        _claimNft(BraqFriends_POOL_ID, _nfts, _recipient);
     }
 
     /**
-     * @notice Claim rewards for array of BAYC NFTs
+     * @notice Claim rewards for array of BraqFriends NFTs
      * @param _nfts Array of NFTs owned and committed by the msg.sender
      */
-    function claimSelfBAYC(uint256[] calldata _nfts) external {
-        _claimNft(BAYC_POOL_ID, _nfts, msg.sender);
+    function claimSelfFriends(uint256[] calldata _nfts) external {
+        _claimNft(BraqFriends_POOL_ID, _nfts, msg.sender);
     }
 
     /**
-     * @notice Claim rewards for array of MAYC NFTs and send to recipient
+     * @notice Claim rewards for array of BraqMonsters NFTs and send to recipient
      * @param _nfts Array of NFTs owned and committed by the msg.sender
      * @param _recipient Address to send claim reward to
      */
-    function claimMAYC(uint256[] calldata _nfts, address _recipient) external {
-        _claimNft(MAYC_POOL_ID, _nfts, _recipient);
+    function claimMonsters(uint256[] calldata _nfts, address _recipient) external {
+        _claimNft(BraqMonsters_POOL_ID, _nfts, _recipient);
     }
 
     /**
-     * @notice Claim rewards for array of MAYC NFTs
+     * @notice Claim rewards for array of BraqMonsters NFTs
      * @param _nfts Array of NFTs owned and committed by the msg.sender
      */
     function claimSelfMAYC(uint256[] calldata _nfts) external {
-        _claimNft(MAYC_POOL_ID, _nfts, msg.sender);
+        _claimNft(BraqMonsters_POOL_ID, _nfts, msg.sender);
     }
 
     /**
      * @notice Claim rewards for array of Paired NFTs and send to recipient
-     * @param _baycPairs Array of Paired BAYC NFTs owned and committed by the msg.sender
-     * @param _maycPairs Array of Paired MAYC NFTs owned and committed by the msg.sender
+     * @param _Pairs Array of Paired MAYC NFTs owned and committed by the msg.sender
      * @param _recipient Address to send claim reward to
      */
-    function claimBAKC(PairNft[] calldata _baycPairs, PairNft[] calldata _maycPairs, address _recipient) public {
-        updatePool(BAKC_POOL_ID);
-        _claimPairNft(BAYC_POOL_ID, _baycPairs, _recipient);
-        _claimPairNft(MAYC_POOL_ID, _maycPairs, _recipient);
+    function claimBAKC(PairNft[] calldata _Pairs, address _recipient) public {
+        updatePool(Pair_POOL_ID);
+        _claimPairNft(BraqFriends_POOL_ID, _Pairs, _recipient);
     }
 
     /**
      * @notice Claim rewards for array of Paired NFTs
-     * @param _baycPairs Array of Paired BAYC NFTs owned and committed by the msg.sender
-     * @param _maycPairs Array of Paired MAYC NFTs owned and committed by the msg.sender
+     * @param _Pairs Array of Paired BAYC NFTs owned and committed by the msg.sender
      */
-    function claimSelfBAKC(PairNft[] calldata _baycPairs, PairNft[] calldata _maycPairs) external {
-        claimBAKC(_baycPairs, _maycPairs, msg.sender);
+    function claimSelfBAKC(PairNft[] calldata _Pairs) external {
+        claimBAKC(_Pairs, msg.sender);
     }
 
     // Uncommit/Withdraw Methods
